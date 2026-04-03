@@ -1,1098 +1,1056 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>雷达显控软件 - 参数配置原型</title>
-  <style>
-    /* ===== CSS Reset & Variables ===== */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>雷达显控 · 参数配置</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d1117; --bg1:#161b22; --bg2:#1c2128; --bg3:#21262d;
+  --bd:#30363d;  --bdf:#388bfd;
+  --t1:#e6edf3;  --t2:#8b949e;  --t3:#484f58;
+  --blue:#388bfd; --green:#3fb950; --yellow:#e3b341;
+  --red:#f85149;  --purple:#a371f7; --cyan:#79c0ff;
+  --r:6px; --rs:4px;
+  --sh:0 4px 24px rgba(0,0,0,.5);
+}
+body{font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+     background:var(--bg0);color:var(--t1);height:100vh;
+     display:flex;flex-direction:column;overflow:hidden;font-size:13px}
 
-    :root {
-      --bg-base:       #0d1117;
-      --bg-surface:    #161b22;
-      --bg-card:       #1c2128;
-      --bg-hover:      #21262d;
-      --border:        #30363d;
-      --border-focus:  #388bfd;
-      --text-primary:  #e6edf3;
-      --text-secondary:#8b949e;
-      --text-muted:    #484f58;
-      --accent-blue:   #388bfd;
-      --accent-green:  #3fb950;
-      --accent-yellow: #d29922;
-      --accent-red:    #f85149;
-      --accent-purple: #a371f7;
-      --accent-cyan:   #39d353;
-      --tab-active-bg: #21262d;
-      --shadow:        0 4px 24px rgba(0,0,0,.45);
-      --radius:        8px;
-      --radius-sm:     5px;
-    }
+/* ── Toolbar ── */
+.toolbar{
+  height:44px;background:var(--bg1);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:10px;padding:0 14px;flex-shrink:0;z-index:50
+}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;
+      color:var(--blue);letter-spacing:.4px}
+.vsep{width:1px;height:22px;background:var(--bd)}
+.chip{font-size:11px;color:var(--t2)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+     box-shadow:0 0 5px var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.tba{margin-left:auto;display:flex;gap:6px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
+     border-radius:var(--rs);font-size:12px;cursor:pointer;border:none;
+     transition:filter .15s}
+.btn:hover{filter:brightness(1.15)}
+.btn-ghost{background:var(--bg3);color:var(--t1);border:1px solid var(--bd)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-green{background:var(--green);color:#000}
+.btn-yellow{background:var(--yellow);color:#000}
+.btn-red{background:var(--red);color:#fff}
 
-    body {
-      font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
-      background: var(--bg-base);
-      color: var(--text-primary);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+/* ── Three-column shell ── */
+.shell{display:flex;flex:1;overflow:hidden}
 
-    /* ===== Top Toolbar ===== */
-    .toolbar {
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-shrink: 0;
-      z-index: 100;
-    }
-    .toolbar-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 15px;
-      color: var(--accent-blue);
-      letter-spacing: .5px;
-    }
-    .toolbar-logo svg { opacity: .9; }
-    .toolbar-sep { width: 1px; height: 24px; background: var(--border); }
-    .toolbar-section { font-size: 12px; color: var(--text-secondary); }
+/* ── Col 1: Board list ── */
+.col-boards{
+  width:170px;min-width:150px;flex-shrink:0;
+  background:var(--bg1);border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;overflow:hidden
+}
+.col-hd{
+  padding:8px 10px 6px;font-size:10px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--bd);
+  flex-shrink:0
+}
+.board-list{flex:1;overflow-y:auto;padding:4px}
+.board-item{
+  display:flex;align-items:center;gap:7px;padding:7px 8px;
+  border-radius:var(--rs);cursor:pointer;color:var(--t2);
+  transition:background .12s,color .12s;margin-bottom:1px;position:relative
+}
+.board-item:hover{background:var(--bg3);color:var(--t1)}
+.board-item.sel{background:var(--bg3);color:var(--blue);font-weight:600}
+.board-item.sel::before{
+  content:'';position:absolute;left:0;top:3px;bottom:3px;
+  width:3px;background:var(--blue);border-radius:2px
+}
+.board-badge{
+  margin-left:auto;font-size:10px;padding:1px 5px;border-radius:8px;
+  background:var(--bg0);color:var(--t3)
+}
+.board-item.dirty .board-badge{background:var(--yellow);color:#000}
+.board-item.sel .board-badge{background:var(--blue);color:#fff}
+.face-sep{
+  font-size:10px;color:var(--t3);padding:6px 8px 2px;
+  letter-spacing:.5px;text-transform:uppercase
+}
 
-    .toolbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 14px; border-radius: var(--radius-sm);
-      font-size: 13px; cursor: pointer; border: none;
-      transition: background .15s, color .15s;
-    }
-    .btn-primary { background: var(--accent-blue); color: #fff; }
-    .btn-primary:hover { background: #1f6feb; }
-    .btn-secondary { background: var(--bg-hover); color: var(--text-primary); border: 1px solid var(--border); }
-    .btn-secondary:hover { background: var(--border); }
-    .btn-success { background: var(--accent-green); color: #000; }
-    .btn-success:hover { background: #2ea043; }
-    .btn-warning { background: var(--accent-yellow); color: #000; }
-    .btn-warning:hover { background: #b08800; }
-    .btn-danger { background: var(--accent-red); color: #fff; }
-    .btn-danger:hover { background: #da3633; }
+/* ── Col 2: Param navigation tree ── */
+.col-nav{
+  width:190px;min-width:170px;flex-shrink:0;
+  background:var(--bg1);border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;overflow:hidden
+}
+.nav-tree{flex:1;overflow-y:auto;padding:6px 4px}
+.nav-category{margin-bottom:2px}
+.nav-cat-hd{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 8px;border-radius:var(--rs);
+  cursor:pointer;font-weight:600;font-size:12px;color:var(--t2);
+  transition:background .12s,color .12s;user-select:none
+}
+.nav-cat-hd:hover{background:var(--bg3);color:var(--t1)}
+.nav-cat-hd.open{color:var(--t1)}
+.caret{font-size:10px;transition:transform .2s;color:var(--t3);flex-shrink:0}
+.nav-cat-hd.open .caret{transform:rotate(90deg)}
+.nav-cat-cnt{font-size:10px;margin-left:auto;color:var(--t3);padding:0 4px}
+.nav-children{display:none;padding-left:10px}
+.nav-cat-hd.open + .nav-children{display:block}
+.nav-leaf{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 8px;border-radius:var(--rs);
+  cursor:pointer;font-size:12px;color:var(--t2);
+  transition:background .12s,color .12s;margin-bottom:1px
+}
+.nav-leaf:hover{background:var(--bg3);color:var(--t1)}
+.nav-leaf.sel{background:var(--bg2);color:var(--blue);font-weight:600}
+.nav-leaf-cnt{font-size:10px;margin-left:auto;color:var(--t3)}
+.nav-leaf.dirty .nav-leaf-cnt{color:var(--yellow)}
 
-    .status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--accent-green);
-      box-shadow: 0 0 6px var(--accent-green);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+/* ── Col 3: Param form ── */
+.col-form{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0
+}
+.form-header{
+  background:var(--bg1);border-bottom:1px solid var(--bd);
+  padding:8px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0
+}
+.form-title{font-size:15px;font-weight:700}
+.form-path{font-size:11px;color:var(--t2)}
+.form-actions{margin-left:auto;display:flex;gap:6px}
 
-    /* ===== Main Layout ===== */
-    .main-layout {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
+/* search bar */
+.search-bar{
+  padding:7px 14px;border-bottom:1px solid var(--bd);
+  background:var(--bg1);display:flex;align-items:center;gap:8px;flex-shrink:0
+}
+.search-input{
+  flex:1;background:var(--bg0);border:1px solid var(--bd);
+  color:var(--t1);padding:4px 10px;border-radius:var(--rs);
+  font-size:12px;outline:none;transition:border-color .15s
+}
+.search-input:focus{border-color:var(--bdf)}
+.search-hint{font-size:11px;color:var(--t3);white-space:nowrap}
 
-    /* ===== Left Sidebar – Array Face Nav ===== */
-    .sidebar {
-      width: 200px;
-      background: var(--bg-surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-    .sidebar-header {
-      padding: 12px 14px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border);
-    }
-    .sidebar-list { flex: 1; overflow-y: auto; padding: 6px 6px; }
+/* param table */
+.param-scroll{flex:1;overflow-y:auto;padding:14px}
+.param-table-wrap{
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+  overflow:hidden;margin-bottom:14px
+}
+.param-table-title{
+  padding:9px 14px;background:var(--bg3);border-bottom:1px solid var(--bd);
+  font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px
+}
+.ptable{width:100%;border-collapse:collapse;font-size:12px}
+.ptable th{
+  background:var(--bg3);color:var(--t2);font-weight:600;
+  padding:7px 12px;text-align:left;border-bottom:1px solid var(--bd);
+  white-space:nowrap;position:sticky;top:0
+}
+.ptable td{
+  padding:6px 10px;border-bottom:1px solid var(--bd);
+  vertical-align:middle;color:var(--t1)
+}
+.ptable tr:last-child td{border-bottom:none}
+.ptable tr:hover td{background:rgba(255,255,255,.03)}
+.ptable tr.modified-row td:first-child{
+  border-left:2px solid var(--yellow)
+}
+.td-key{color:var(--t2);font-family:monospace;font-size:11px;white-space:nowrap;max-width:120px}
+.td-label{white-space:nowrap;min-width:100px}
+.td-unit{color:var(--t3);font-size:11px;white-space:nowrap}
+.td-range{color:var(--t3);font-size:11px;white-space:nowrap}
+.td-ctrl{min-width:200px}
+.td-desc{color:var(--t2);font-size:11px;max-width:220px}
 
-    .array-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px; border-radius: var(--radius-sm);
-      cursor: pointer; font-size: 13px;
-      color: var(--text-secondary);
-      transition: background .12s, color .12s;
-      position: relative;
-      margin-bottom: 2px;
-    }
-    .array-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-    .array-item.active { background: var(--tab-active-bg); color: var(--accent-blue); font-weight: 600; }
-    .array-item.active::before {
-      content: '';
-      position: absolute; left: 0; top: 4px; bottom: 4px;
-      width: 3px; background: var(--accent-blue); border-radius: 2px;
-    }
-    .array-badge {
-      margin-left: auto;
-      font-size: 10px; padding: 1px 6px;
-      border-radius: 8px;
-      background: var(--bg-base); color: var(--text-muted);
-    }
-    .array-item.active .array-badge { background: var(--accent-blue); color: #fff; }
-    .array-item.modified .array-badge { background: var(--accent-yellow); color: #000; }
+/* controls */
+.cinput{
+  background:var(--bg0);border:1px solid var(--bd);color:var(--t1);
+  padding:4px 8px;border-radius:var(--rs);font-size:12px;
+  outline:none;width:100%;transition:border-color .15s;font-family:inherit
+}
+.cinput:focus{border-color:var(--bdf)}
+.cinput.mod{border-color:var(--yellow);background:rgba(227,179,65,.06)}
+select.cinput{cursor:pointer}
+.crange-wrap{display:flex;align-items:center;gap:6px}
+.crange{
+  flex:1;height:4px;cursor:pointer;background:var(--bd);border:none;
+  border-radius:2px;accent-color:var(--blue);outline:none
+}
+.crange-val{font-size:11px;color:var(--blue);font-weight:600;min-width:36px;text-align:right}
+.ctoggle-row{display:flex;align-items:center;gap:8px;cursor:pointer;width:fit-content}
+.ctoggle{
+  width:32px;height:17px;border-radius:9px;background:var(--bd);
+  position:relative;transition:background .2s;flex-shrink:0
+}
+.ctoggle.on{background:var(--blue)}
+.ctoggle::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:13px;height:13px;border-radius:50%;background:#fff;transition:left .2s
+}
+.ctoggle.on::after{left:17px}
+.toggle-label{font-size:12px}
 
-    .sidebar-footer {
-      padding: 10px;
-      border-top: 1px solid var(--border);
-      display: flex; flex-direction: column; gap: 6px;
-    }
-    .sidebar-footer .btn { width: 100%; justify-content: center; font-size: 12px; padding: 6px; }
+/* highlight matched text */
+.hl{background:rgba(88,166,255,.25);border-radius:2px;color:var(--cyan)}
 
-    /* ===== Content Area ===== */
-    .content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+/* empty state */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:12px;color:var(--t3)
+}
+.empty svg{opacity:.25}
 
-    /* Board header */
-    .board-header {
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border);
-      padding: 10px 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-shrink: 0;
-    }
-    .board-title {
-      font-size: 16px; font-weight: 700; color: var(--text-primary);
-    }
-    .board-subtitle { font-size: 12px; color: var(--text-secondary); }
-    .board-actions { margin-left: auto; display: flex; gap: 8px; }
+/* status bar */
+.sbar{
+  background:var(--bg1);border-top:1px solid var(--bd);
+  padding:3px 14px;display:flex;align-items:center;gap:12px;
+  font-size:11px;color:var(--t3);flex-shrink:0
+}
+.sbar .sv{color:var(--t2)} .sbar .vsep{height:12px}
 
-    /* ===== Parameter Type Tabs ===== */
-    .param-tabs {
-      display: flex;
-      gap: 0;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg-surface);
-      padding: 0 20px;
-      flex-shrink: 0;
-    }
-    .param-tab {
-      padding: 10px 18px;
-      font-size: 13px;
-      cursor: pointer;
-      border: none; background: none;
-      color: var(--text-secondary);
-      border-bottom: 2px solid transparent;
-      transition: color .15s, border-color .15s;
-      white-space: nowrap;
-    }
-    .param-tab:hover { color: var(--text-primary); }
-    .param-tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); font-weight: 600; }
-    .param-tab .tab-badge {
-      margin-left: 5px; font-size: 10px; padding: 1px 5px;
-      background: var(--bg-hover); border-radius: 8px;
-      color: var(--text-muted);
-    }
+/* ── Compare dialog ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:200;display:none;align-items:center;justify-content:center
+}
+.overlay.show{display:flex}
+.dialog{
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+  width:min(95vw,1000px);max-height:85vh;
+  display:flex;flex-direction:column;box-shadow:var(--sh);overflow:hidden
+}
+.dlg-hd{
+  padding:12px 16px;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:10px;flex-shrink:0
+}
+.dlg-title{font-size:14px;font-weight:700}
+.dlg-x{margin-left:auto;cursor:pointer;color:var(--t2);font-size:18px;line-height:1}
+.dlg-x:hover{color:var(--t1)}
+.dlg-body{overflow:auto;padding:14px}
 
-    /* ===== Param Panel ===== */
-    .param-panel {
-      flex: 1; overflow-y: auto; padding: 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 16px;
-      align-content: start;
-    }
+.cmp-table{width:100%;border-collapse:collapse;font-size:12px}
+.cmp-table th{
+  background:var(--bg3);color:var(--t2);padding:7px 10px;
+  text-align:left;border-bottom:1px solid var(--bd);
+  white-space:nowrap;position:sticky;top:0
+}
+.cmp-table td{padding:6px 10px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.cmp-table tr:hover td{background:rgba(255,255,255,.03)}
+.cmp-diff{color:var(--yellow);font-weight:600}
+.cmp-same{color:var(--t3)}
 
-    .param-group {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-    .group-header {
-      padding: 10px 14px;
-      background: var(--bg-hover);
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; font-weight: 600; color: var(--text-primary);
-      cursor: pointer;
-      user-select: none;
-    }
-    .group-header .collapse-icon { margin-left: auto; transition: transform .2s; font-size: 11px; color: var(--text-muted); }
-    .group-header.collapsed .collapse-icon { transform: rotate(-90deg); }
-    .group-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-    .group-body.hidden { display: none; }
+/* ── Config dialog ── */
+.cfg-dialog{
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+  width:min(95vw,540px);display:flex;flex-direction:column;box-shadow:var(--sh)
+}
+.cfg-list{padding:8px 14px 4px;display:flex;flex-direction:column;gap:5px;max-height:350px;overflow-y:auto}
+.cfg-item{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;
+  background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);
+}
+.cfg-name{font-size:13px;font-weight:600}
+.cfg-meta{font-size:11px;color:var(--t3)}
+.cfg-ia{margin-left:auto;display:flex;gap:5px}
+.save-row{display:flex;gap:7px;padding:8px 14px 12px}
+.save-input{
+  flex:1;background:var(--bg0);border:1px solid var(--bd);color:var(--t1);
+  padding:6px 10px;border-radius:var(--rs);font-size:12px;outline:none
+}
+.save-input:focus{border-color:var(--bdf)}
 
-    .param-row {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .param-label {
-      font-size: 12px; color: var(--text-secondary);
-      min-width: 130px; flex-shrink: 0;
-    }
-    .param-label .unit {
-      font-size: 10px; color: var(--text-muted); margin-left: 3px;
-    }
-    .param-input {
-      flex: 1;
-      background: var(--bg-base);
-      border: 1px solid var(--border);
-      color: var(--text-primary);
-      padding: 5px 9px;
-      border-radius: var(--radius-sm);
-      font-size: 13px;
-      transition: border-color .15s;
-      outline: none;
-    }
-    .param-input:focus { border-color: var(--border-focus); }
-    .param-input.modified { border-color: var(--accent-yellow); background: rgba(210,153,34,.08); }
+/* ── Toast ── */
+.tc{position:fixed;bottom:36px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px}
+.toast{
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);
+  padding:8px 14px;font-size:12px;color:var(--t1);box-shadow:var(--sh);
+  animation:fadeIn .2s ease;display:flex;align-items:center;gap:7px
+}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.warn{border-left:3px solid var(--yellow)}
+.toast.err{border-left:3px solid var(--red)}
+@keyframes fadeIn{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
 
-    select.param-input { cursor: pointer; }
-    .param-input[type="range"] {
-      padding: 0; height: 4px; cursor: pointer;
-      background: var(--border); border: none;
-      border-radius: 2px; accent-color: var(--accent-blue);
-    }
-    .range-row { flex-direction: column; align-items: stretch; gap: 4px; }
-    .range-row .range-header { display: flex; justify-content: space-between; align-items: center; }
-    .range-val { font-size: 12px; color: var(--accent-blue); font-weight: 600; min-width: 40px; text-align: right; }
-
-    .toggle-row { cursor: pointer; gap: 10px; }
-    .toggle { width: 34px; height: 18px; border-radius: 9px; background: var(--border); position: relative; flex-shrink: 0; transition: background .2s; }
-    .toggle.on { background: var(--accent-blue); }
-    .toggle::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; transition: left .2s; }
-    .toggle.on::after { left:18px; }
-
-    /* ===== Bottom Status Bar ===== */
-    .statusbar {
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-      padding: 4px 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      font-size: 11px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-    }
-    .statusbar .sep { color: var(--border); }
-
-    /* ===== Compare Panel ===== */
-    .compare-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.7);
-      z-index: 500; display: none; align-items: center; justify-content: center;
-    }
-    .compare-overlay.show { display: flex; }
-    .compare-modal {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      width: min(92vw, 900px);
-      max-height: 80vh;
-      display: flex; flex-direction: column;
-      overflow: hidden;
-      box-shadow: var(--shadow);
-    }
-    .modal-header {
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 12px;
-    }
-    .modal-title { font-size: 15px; font-weight: 700; }
-    .modal-close { margin-left: auto; cursor: pointer; color: var(--text-muted); font-size: 18px; line-height: 1; }
-    .modal-close:hover { color: var(--text-primary); }
-    .modal-body { overflow-y: auto; padding: 16px; }
-
-    .compare-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .compare-table th {
-      background: var(--bg-hover); color: var(--text-secondary);
-      padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);
-      position: sticky; top: 0;
-    }
-    .compare-table td {
-      padding: 7px 12px; border-bottom: 1px solid var(--border);
-      color: var(--text-primary);
-    }
-    .compare-table tr:hover td { background: var(--bg-hover); }
-    .diff-cell { color: var(--accent-yellow); font-weight: 600; }
-    .same-cell { color: var(--text-muted); }
-
-    /* ===== Config Save/Load Panel ===== */
-    .config-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.7);
-      z-index: 500; display: none; align-items: center; justify-content: center;
-    }
-    .config-overlay.show { display: flex; }
-    .config-modal {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      width: min(92vw, 560px);
-      display: flex; flex-direction: column;
-      box-shadow: var(--shadow);
-    }
-    .config-list { padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
-    .config-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px;
-      background: var(--bg-hover);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: border-color .15s;
-    }
-    .config-item:hover { border-color: var(--accent-blue); }
-    .config-item-name { font-size: 13px; font-weight: 600; }
-    .config-item-meta { font-size: 11px; color: var(--text-muted); }
-    .config-item-actions { margin-left: auto; display: flex; gap: 6px; }
-
-    .save-form { padding: 0 16px 16px; display: flex; gap: 8px; }
-    .save-input {
-      flex: 1; background: var(--bg-base); border: 1px solid var(--border);
-      color: var(--text-primary); padding: 7px 10px; border-radius: var(--radius-sm);
-      font-size: 13px; outline: none;
-    }
-    .save-input:focus { border-color: var(--border-focus); }
-
-    /* ===== Scrollbar ===== */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-
-    /* ===== Toast ===== */
-    .toast-container { position: fixed; bottom: 40px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-    .toast {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 10px 16px;
-      font-size: 13px; color: var(--text-primary);
-      box-shadow: var(--shadow);
-      animation: slideIn .25s ease; display: flex; align-items: center; gap: 8px;
-    }
-    .toast.success { border-left: 3px solid var(--accent-green); }
-    .toast.warning { border-left: 3px solid var(--accent-yellow); }
-    .toast.error   { border-left: 3px solid var(--accent-red); }
-    @keyframes slideIn { from{transform:translateX(80px);opacity:0} to{transform:translateX(0);opacity:1} }
-
-    /* ===== Responsive ===== */
-    @media (max-width: 900px) {
-      .sidebar { width: 160px; }
-      .param-panel { grid-template-columns: 1fr; }
-    }
-  </style>
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--t3)}
+</style>
 </head>
 <body>
 
-<!-- ===== Top Toolbar ===== -->
+<!-- ───────── Toolbar ───────── -->
 <div class="toolbar">
-  <div class="toolbar-logo">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
       <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
       <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
     </svg>
     雷达显控系统
   </div>
-  <div class="toolbar-sep"></div>
-  <span class="toolbar-section">多阵面参数配置管理</span>
-  <div class="status-dot" title="系统连接正常"></div>
-  <span style="font-size:12px;color:var(--accent-green)">系统在线</span>
-
-  <div class="toolbar-actions">
-    <button class="btn btn-secondary" onclick="openCompare()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-      跨阵面对比
+  <div class="vsep"></div>
+  <span class="chip">多阵面参数配置</span>
+  <div class="dot" title="系统在线"></div>
+  <span style="font-size:11px;color:var(--green)">在线</span>
+  <div class="tba">
+    <button class="btn btn-ghost" onclick="openCmp()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>跨阵面对比
     </button>
-    <button class="btn btn-secondary" onclick="openConfig()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button class="btn btn-ghost" onclick="openCfg()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
         <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-      </svg>
-      配置组管理
+      </svg>配置组
     </button>
-    <button class="btn btn-success" onclick="sendAll()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button class="btn btn-green" onclick="sendAll()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-      </svg>
-      下发全部参数
+      </svg>下发全部
     </button>
   </div>
 </div>
 
-<!-- ===== Main Layout ===== -->
-<div class="main-layout">
+<!-- ───────── Shell ───────── -->
+<div class="shell">
 
-  <!-- Left Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-header">阵面板卡</div>
-    <div class="sidebar-list" id="sidebarList"></div>
-    <div class="sidebar-footer">
-      <button class="btn btn-secondary" onclick="showToast('已同步配置文件','success')">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-        </svg>
-        刷新板卡列表
-      </button>
+  <!-- Col 1: Board list -->
+  <div class="col-boards">
+    <div class="col-hd">阵面板卡</div>
+    <div class="board-list" id="boardList"></div>
+  </div>
+
+  <!-- Col 2: Nav tree -->
+  <div class="col-nav">
+    <div class="col-hd">参数导航</div>
+    <div class="nav-tree" id="navTree">
+      <div class="empty" style="height:200px">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span style="font-size:12px">请先选择板卡</span>
+      </div>
     </div>
   </div>
 
-  <!-- Content Area -->
-  <div class="content">
-    <div class="board-header" id="boardHeader">
+  <!-- Col 3: Param form -->
+  <div class="col-form">
+    <div class="form-header" id="formHeader">
       <div>
-        <div class="board-title" id="boardTitle">—</div>
-        <div class="board-subtitle" id="boardSubtitle">请选择板卡</div>
+        <div class="form-title" id="formTitle">—</div>
+        <div class="form-path" id="formPath">选择左侧分类以查看参数</div>
       </div>
-      <div class="board-actions">
-        <button class="btn btn-secondary" onclick="loadBoardParams()">读取当前参数</button>
-        <button class="btn btn-warning" onclick="sendBoard()">下发本板卡参数</button>
-        <button class="btn btn-secondary" onclick="resetBoard()">恢复默认值</button>
+      <div class="form-actions">
+        <button class="btn btn-ghost" onclick="readParams()">读取</button>
+        <button class="btn btn-yellow" onclick="sendBoard()">下发本板卡</button>
+        <button class="btn btn-ghost" onclick="resetBoard()">重置</button>
       </div>
     </div>
-
-    <!-- Parameter Type Tabs -->
-    <div class="param-tabs" id="paramTabs">
-      <button class="param-tab active" data-tab="radar" onclick="switchTab(this,'radar')">
-        雷控参数 <span class="tab-badge" id="tb-radar">—</span>
-      </button>
-      <button class="param-tab" data-tab="signal" onclick="switchTab(this,'signal')">
-        信处参数 <span class="tab-badge" id="tb-signal">—</span>
-      </button>
-      <button class="param-tab" data-tab="track" onclick="switchTab(this,'track')">
-        航迹参数 <span class="tab-badge" id="tb-track">—</span>
-      </button>
-      <button class="param-tab" data-tab="cfar" onclick="switchTab(this,'cfar')">
-        CFAR参数 <span class="tab-badge" id="tb-cfar">—</span>
-      </button>
-      <button class="param-tab" data-tab="waveform" onclick="switchTab(this,'waveform')">
-        波形参数 <span class="tab-badge" id="tb-waveform">—</span>
-      </button>
+    <div class="search-bar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--t3);flex-shrink:0">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input class="search-input" id="searchInput" placeholder="搜索参数名 / 关键字…" oninput="onSearch()"/>
+      <span class="search-hint" id="searchHint"></span>
     </div>
-
-    <!-- Parameter Panel -->
-    <div class="param-panel" id="paramPanel">
-      <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;color:var(--text-muted);gap:12px;">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".3">
-          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
-          <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
-          <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+    <div class="param-scroll" id="paramScroll">
+      <div class="empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        <span style="font-size:14px">请从左侧选择板卡以查看参数</span>
+        <span style="font-size:13px">请从左侧导航树选择参数分类</span>
       </div>
-    </div>
-
-    <!-- Status Bar -->
-    <div class="statusbar">
-      <span id="sb-board">未选择</span>
-      <span class="sep">|</span>
-      <span id="sb-tab">—</span>
-      <span class="sep">|</span>
-      <span id="sb-modified" style="color:var(--accent-yellow)">未修改</span>
-      <span class="sep">|</span>
-      <span id="sb-time">—</span>
     </div>
   </div>
+
 </div>
 
-<!-- ===== Compare Modal ===== -->
-<div class="compare-overlay" id="compareOverlay" onclick="closeIfBackdrop(event,'compareOverlay')">
-  <div class="compare-modal">
-    <div class="modal-header">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-      <span class="modal-title">跨阵面参数对比</span>
+<!-- ───────── Status bar ───────── -->
+<div class="sbar">
+  <span>板卡：</span><span class="sv" id="sb1">未选择</span>
+  <div class="vsep" style="width:1px;height:12px;background:var(--bd)"></div>
+  <span>分类：</span><span class="sv" id="sb2">—</span>
+  <div class="vsep" style="width:1px;height:12px;background:var(--bd)"></div>
+  <span>已修改：</span><span class="sv" id="sb3" style="color:var(--yellow)">0 项</span>
+  <div class="vsep" style="width:1px;height:12px;background:var(--bd)"></div>
+  <span id="sbtime">—</span>
+</div>
 
-      <div style="margin-left:12px;display:flex;align-items:center;gap:8px;font-size:12px;">
-        <span style="color:var(--text-secondary)">参数类型：</span>
-        <select class="param-input" id="compareType" style="width:120px" onchange="renderCompare()">
-          <option value="radar">雷控参数</option>
-          <option value="signal">信处参数</option>
-          <option value="track">航迹参数</option>
-          <option value="cfar">CFAR参数</option>
-          <option value="waveform">波形参数</option>
-        </select>
-      </div>
-      <div style="margin-left:8px;display:flex;align-items:center;gap:6px;font-size:12px;">
-        <label style="display:flex;align-items:center;gap:4px;color:var(--text-secondary);cursor:pointer;">
-          <input type="checkbox" id="diffOnly" onchange="renderCompare()" style="accent-color:var(--accent-blue)"/>
-          仅显示差异项
+<!-- ───────── Compare overlay ───────── -->
+<div class="overlay" id="cmpOverlay" onclick="closeIfBg(event,'cmpOverlay')">
+  <div class="dialog">
+    <div class="dlg-hd">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span class="dlg-title">跨阵面参数对比</span>
+      <div style="margin-left:12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--t2)">分类：</span>
+        <select class="cinput" id="cmpType" style="width:160px" onchange="renderCmp()"></select>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:var(--t2)">
+          <input type="checkbox" id="cmpDiffOnly" onchange="renderCmp()" style="accent-color:var(--blue)"/>只看差异
         </label>
       </div>
-      <span class="modal-close" onclick="closeCompare()">×</span>
+      <span class="dlg-x" onclick="document.getElementById('cmpOverlay').classList.remove('show')">×</span>
     </div>
-    <div class="modal-body">
-      <table class="compare-table" id="compareTable"></table>
+    <div class="dlg-body"><table class="cmp-table" id="cmpTable"></table></div>
+  </div>
+</div>
+
+<!-- ───────── Config overlay ───────── -->
+<div class="overlay" id="cfgOverlay" onclick="closeIfBg(event,'cfgOverlay')">
+  <div class="cfg-dialog">
+    <div class="dlg-hd">
+      <span class="dlg-title">配置组管理</span>
+      <span class="dlg-x" onclick="document.getElementById('cfgOverlay').classList.remove('show')">×</span>
+    </div>
+    <div style="padding:6px 14px 4px;font-size:11px;color:var(--t2)">
+      每个配置组保存所有板卡、所有参数的完整快照，可随时加载恢复。
+    </div>
+    <div class="cfg-list" id="cfgList"></div>
+    <div style="padding:4px 14px 4px;font-size:11px;color:var(--t2)">新建配置组</div>
+    <div class="save-row">
+      <input class="save-input" id="saveNameInput" placeholder="配置组名称，如：任务A搜索模式"/>
+      <button class="btn btn-blue" onclick="saveConfig()">保存</button>
     </div>
   </div>
 </div>
 
-<!-- ===== Config Modal ===== -->
-<div class="config-overlay" id="configOverlay" onclick="closeIfBackdrop(event,'configOverlay')">
-  <div class="config-modal">
-    <div class="modal-header">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-        <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-      </svg>
-      <span class="modal-title">配置组管理</span>
-      <span class="modal-close" onclick="closeConfig()">×</span>
-    </div>
-    <div style="padding:12px 16px 8px;font-size:12px;color:var(--text-secondary);">
-      每个配置组保存当前所有板卡、所有类型参数的完整快照，可随时加载恢复。
-    </div>
-    <div class="config-list" id="configList"></div>
-    <div style="padding:4px 16px 6px;font-size:12px;color:var(--text-secondary);">新建配置组</div>
-    <div class="save-form">
-      <input class="save-input" id="saveNameInput" placeholder="输入配置组名称，如：任务A初始化配置" />
-      <button class="btn btn-primary" onclick="saveConfig()">保存当前</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast container -->
-<div class="toast-container" id="toastContainer"></div>
+<div class="tc" id="tc"></div>
 
 <script>
-/* ==================== 数据模型 ==================== */
-
-// 从"配置文件"动态生成的阵面板卡列表（实际项目中从后端/配置文件读取）
-const BOARD_CONFIG = [
-  { id: 'A1', label: '阵面A - 主板卡', face: 'A', ip: '192.168.1.101' },
-  { id: 'A2', label: '阵面A - 信处板卡', face: 'A', ip: '192.168.1.102' },
-  { id: 'B1', label: '阵面B - 主板卡', face: 'B', ip: '192.168.1.201' },
-  { id: 'B2', label: '阵面B - 信处板卡', face: 'B', ip: '192.168.1.202' },
-  { id: 'C1', label: '阵面C - 主板卡', face: 'C', ip: '192.168.1.301' },
-  { id: 'C2', label: '阵面C - 信处板卡', face: 'C', ip: '192.168.1.302' },
-];
-
-// 参数定义模板（每块板卡共用同一套模板，值各自独立）
-const PARAM_SCHEMA = {
-  radar: [
-    {
-      group: '发射控制',
-      params: [
-        { key: 'tx_power',     label: '发射功率',      unit: 'dBm',  type: 'number', min: 0,   max: 100,  step: 0.1,  default: 43.5 },
-        { key: 'tx_freq',      label: '载波频率',      unit: 'MHz',  type: 'number', min: 2000, max: 8000, step: 1,    default: 3500 },
-        { key: 'tx_enable',    label: '发射使能',                    type: 'toggle',                                  default: true  },
-        { key: 'prf',          label: 'PRF',           unit: 'Hz',   type: 'number', min: 100,  max: 5000, step: 10,   default: 1000 },
-        { key: 'pulse_width',  label: '脉冲宽度',      unit: 'μs',   type: 'number', min: 0.1,  max: 100,  step: 0.1,  default: 10   },
-      ]
-    },
-    {
-      group: '接收控制',
-      params: [
-        { key: 'rx_gain',      label: '接收增益',      unit: 'dB',   type: 'range',  min: 0,   max: 60,   step: 1,    default: 30   },
-        { key: 'rx_bandwidth', label: '接收带宽',      unit: 'MHz',  type: 'select', options: ['5','10','20','40','80'], default: '20' },
-        { key: 'lna_enable',   label: 'LNA使能',                     type: 'toggle',                                  default: true  },
-        { key: 'rx_atten',     label: '接收衰减',      unit: 'dB',   type: 'number', min: 0,   max: 31.5, step: 0.5,  default: 6    },
-      ]
-    },
-    {
-      group: '扫描控制',
-      params: [
-        { key: 'scan_mode',    label: '扫描模式',                    type: 'select', options: ['机械扫描','相扫','混合扫描'], default: '相扫' },
-        { key: 'az_start',     label: '方位起始角',    unit: '°',    type: 'number', min: -180, max: 180, step: 0.1,  default: -60  },
-        { key: 'az_end',       label: '方位终止角',    unit: '°',    type: 'number', min: -180, max: 180, step: 0.1,  default: 60   },
-        { key: 'el_start',     label: '俯仰起始角',    unit: '°',    type: 'number', min: -30,  max: 90,  step: 0.1,  default: 0    },
-        { key: 'el_end',       label: '俯仰终止角',    unit: '°',    type: 'number', min: -30,  max: 90,  step: 0.1,  default: 30   },
-        { key: 'scan_rate',    label: '扫描速率',      unit: '°/s',  type: 'range',  min: 1,   max: 60,   step: 1,    default: 12   },
-      ]
-    },
-  ],
-  signal: [
-    {
-      group: '信号处理基础',
-      params: [
-        { key: 'sig_mode',     label: '处理模式',                    type: 'select', options: ['脉冲多普勒','脉压','MTI','MTD'], default: '脉冲多普勒' },
-        { key: 'fft_size',     label: 'FFT点数',                     type: 'select', options: ['256','512','1024','2048','4096'], default: '1024' },
-        { key: 'coherent_n',   label: '相参积累数',  unit: '脉冲',   type: 'number', min: 4,   max: 256,  step: 4,    default: 64   },
-        { key: 'noncoherent',  label: '非相参积累',  unit: '次',     type: 'number', min: 1,   max: 16,   step: 1,    default: 4    },
-        { key: 'doppler_enable',label: '多普勒处理',                  type: 'toggle',                                  default: true  },
-      ]
-    },
-    {
-      group: '杂波抑制',
-      params: [
-        { key: 'clutter_cancel',label: '杂波对消',                   type: 'toggle',                                  default: true  },
-        { key: 'mti_order',    label: 'MTI阶数',                     type: 'select', options: ['1','2','3','4'],      default: '2'   },
-        { key: 'notch_depth',  label: '凹口深度',    unit: 'dB',     type: 'range',  min: 20,  max: 80,   step: 1,    default: 40   },
-        { key: 'ground_thresh',label: '地杂波门限',  unit: 'dB',     type: 'number', min: -30, max: 30,   step: 0.5,  default: 15   },
-      ]
-    },
-  ],
-  track: [
-    {
-      group: '航迹起始',
-      params: [
-        { key: 'init_hits',    label: '起始确认次数', unit: '次',    type: 'number', min: 1,   max: 10,   step: 1,    default: 3    },
-        { key: 'init_frames',  label: '起始帧数',     unit: '帧',    type: 'number', min: 3,   max: 20,   step: 1,    default: 5    },
-        { key: 'gate_r',       label: '距离波门',     unit: 'm',     type: 'number', min: 50,  max: 2000, step: 50,   default: 500  },
-        { key: 'gate_v',       label: '速度波门',     unit: 'm/s',   type: 'number', min: 5,   max: 500,  step: 5,    default: 50   },
-        { key: 'gate_az',      label: '方位波门',     unit: '°',     type: 'number', min: 0.1, max: 10,   step: 0.1,  default: 2    },
-      ]
-    },
-    {
-      group: '航迹维持',
-      params: [
-        { key: 'miss_max',     label: '最大漏检次数', unit: '次',    type: 'number', min: 1,   max: 10,   step: 1,    default: 4    },
-        { key: 'track_filter', label: '滤波方式',                    type: 'select', options: ['α-β滤波','卡尔曼','扩展卡尔曼','无迹卡尔曼'], default: '卡尔曼' },
-        { key: 'q_factor',     label: '过程噪声Q',                   type: 'number', min: 0.001,max: 10,  step: 0.001,default: 0.1  },
-        { key: 'r_factor',     label: '观测噪声R',                   type: 'number', min: 0.001,max: 10,  step: 0.001,default: 1.0  },
-      ]
-    },
-    {
-      group: '航迹终结',
-      params: [
-        { key: 'del_miss',     label: '删除漏检帧数', unit: '帧',    type: 'number', min: 1,   max: 20,   step: 1,    default: 8    },
-        { key: 'del_out_range',label: '超范围删除',                   type: 'toggle',                                  default: true  },
-        { key: 'del_low_snr',  label: '低SNR删除门限',unit: 'dB',   type: 'range',  min: 5,   max: 30,   step: 1,    default: 10   },
-      ]
-    },
-  ],
-  cfar: [
-    {
-      group: 'CFAR基础设置',
-      params: [
-        { key: 'cfar_type',    label: 'CFAR类型',                    type: 'select', options: ['CA-CFAR','GO-CFAR','SO-CFAR','OS-CFAR','CASH-CFAR'], default: 'CA-CFAR' },
-        { key: 'pfa',          label: '虚警概率',                    type: 'select', options: ['1e-3','1e-4','1e-5','1e-6','1e-7'], default: '1e-6' },
-        { key: 'ref_win',      label: '参考窗长度',  unit: '单元',   type: 'number', min: 8,   max: 128,  step: 4,    default: 32   },
-        { key: 'guard_win',    label: '保护单元',    unit: '单元',   type: 'number', min: 1,   max: 16,   step: 1,    default: 4    },
-      ]
-    },
-    {
-      group: 'OS-CFAR参数',
-      params: [
-        { key: 'os_rank',      label: '排序秩 k',                    type: 'number', min: 1,   max: 64,   step: 1,    default: 24   },
-        { key: 'os_enable',    label: 'OS模式使能',                   type: 'toggle',                                  default: false },
-      ]
-    },
-    {
-      group: '二维CFAR',
-      params: [
-        { key: '2d_cfar',      label: '二维CFAR使能',                 type: 'toggle',                                  default: false },
-        { key: '2d_rng_win',   label: '距离窗',      unit: '单元',   type: 'number', min: 4,   max: 64,   step: 2,    default: 16   },
-        { key: '2d_dop_win',   label: '多普勒窗',    unit: '单元',   type: 'number', min: 4,   max: 64,   step: 2,    default: 16   },
-        { key: 'thresh_scale', label: '门限比例因子',                 type: 'range',  min: 0.5, max: 3.0,  step: 0.1,  default: 1.0  },
-      ]
-    },
-  ],
-  waveform: [
-    {
-      group: '波形设计',
-      params: [
-        { key: 'waveform_type',label: '波形类型',                    type: 'select', options: ['LFM','NLFM','相编码','频编码','OFDM'], default: 'LFM' },
-        { key: 'bandwidth',    label: '信号带宽',    unit: 'MHz',    type: 'number', min: 1,   max: 500,  step: 1,    default: 100  },
-        { key: 'tbp',          label: '时宽带宽积',                  type: 'number', min: 10,  max: 10000,step: 10,   default: 1000 },
-        { key: 'code_len',     label: '编码长度',    unit: 'bit',    type: 'select', options: ['13','25','64','128','Golay'], default: '13' },
-      ]
-    },
-    {
-      group: '脉压参数',
-      params: [
-        { key: 'window_type',  label: '加权窗函数',                  type: 'select', options: ['矩形窗','汉明窗','汉宁窗','布莱克曼窗','泰勒窗'], default: '泰勒窗' },
-        { key: 'sll',          label: '旁瓣电平',    unit: 'dB',     type: 'range',  min: -60, max: -13,  step: 1,    default: -40  },
-        { key: 'compress_en',  label: '脉压使能',                     type: 'toggle',                                  default: true  },
-        { key: 'mismatched',   label: '失配滤波',                     type: 'toggle',                                  default: false },
-      ]
-    },
-  ],
+/* ══════════════════════════════════════════════
+   数据模型 — 参数 Schema
+   结构：类别(category) → 子类(subcat) → 参数列表
+   ══════════════════════════════════════════════ */
+const SCHEMA = {
+  /* ─── 雷控参数 ─── */
+  radar: {
+    label: '雷控参数', icon: '📡',
+    subs: {
+      tx: {
+        label: '发射控制', params: [
+          { key:'tx_power',   label:'发射功率',       unit:'dBm',  type:'num',  min:0,    max:100,   step:0.1,  def:43.5,  desc:'末级放大器输出功率' },
+          { key:'tx_freq',    label:'载波频率',       unit:'MHz',  type:'num',  min:2000, max:8000,  step:1,    def:3500,  desc:'射频载波中心频率' },
+          { key:'prf',        label:'重复频率(PRF)',  unit:'Hz',   type:'num',  min:100,  max:5000,  step:10,   def:1000,  desc:'脉冲重复频率' },
+          { key:'pri',        label:'重复周期(PRI)',  unit:'ms',   type:'num',  min:0.2,  max:10,    step:0.01, def:1.0,   desc:'脉冲重复间隔' },
+          { key:'pw',         label:'脉冲宽度',       unit:'μs',   type:'num',  min:0.1,  max:100,   step:0.1,  def:10,    desc:'发射脉冲时宽' },
+          { key:'duty',       label:'占空比',         unit:'%',    type:'num',  min:0.01, max:50,    step:0.01, def:1.0,   desc:'PW/PRI×100%' },
+          { key:'tx_en',      label:'发射使能',                    type:'tog',                                 def:true,  desc:'控制发射通道开关' },
+          { key:'chirp_dir',  label:'线调方向',                    type:'sel',  opts:['上调频','下调频'],      def:'上调频',desc:'LFM调频方向' },
+        ]
+      },
+      rx: {
+        label: '接收控制', params: [
+          { key:'rx_gain',    label:'接收增益',       unit:'dB',   type:'rng',  min:0,    max:60,    step:1,    def:30,    desc:'可变增益放大量' },
+          { key:'rx_bw',      label:'接收带宽',       unit:'MHz',  type:'sel',  opts:['5','10','20','40','80','160'],  def:'20', desc:'中频滤波带宽' },
+          { key:'rx_atten',   label:'接收衰减',       unit:'dB',   type:'num',  min:0,    max:31.5,  step:0.5,  def:6,     desc:'前端固定衰减' },
+          { key:'lna_en',     label:'LNA使能',                     type:'tog',                                 def:true,  desc:'低噪放开关' },
+          { key:'agc_en',     label:'AGC使能',                     type:'tog',                                 def:true,  desc:'自动增益控制' },
+          { key:'agc_ref',    label:'AGC参考电平',    unit:'dBm',  type:'num',  min:-60,  max:0,     step:0.5,  def:-20,   desc:'AGC目标输出电平' },
+          { key:'adc_rate',   label:'ADC采样率',      unit:'MHz',  type:'sel',  opts:['125','250','500','1000'],     def:'250', desc:'模数转换采样率' },
+          { key:'adc_bits',   label:'ADC位宽',        unit:'bit',  type:'sel',  opts:['12','14','16'],              def:'14',  desc:'模数转换精度' },
+        ]
+      },
+      scan: {
+        label: '扫描控制', params: [
+          { key:'scan_mode',  label:'扫描模式',                    type:'sel',  opts:['机械扫描','相扫','混合扫描','驻留'],  def:'相扫', desc:'' },
+          { key:'az_start',   label:'方位起始角',     unit:'°',    type:'num',  min:-180, max:180,   step:0.1,  def:-60,   desc:'' },
+          { key:'az_end',     label:'方位终止角',     unit:'°',    type:'num',  min:-180, max:180,   step:0.1,  def:60,    desc:'' },
+          { key:'el_start',   label:'俯仰起始角',     unit:'°',    type:'num',  min:-30,  max:90,    step:0.1,  def:0,     desc:'' },
+          { key:'el_end',     label:'俯仰终止角',     unit:'°',    type:'num',  min:-30,  max:90,    step:0.1,  def:30,    desc:'' },
+          { key:'scan_rate',  label:'扫描速率',       unit:'°/s',  type:'rng',  min:1,    max:60,    step:1,    def:12,    desc:'机械扫描角速度' },
+          { key:'beam_dwell', label:'波束驻留时间',   unit:'ms',   type:'num',  min:0.5,  max:200,   step:0.5,  def:5,     desc:'每个波束位置的驻留时长' },
+          { key:'bar_num',    label:'俯仰Bar数',      unit:'个',   type:'num',  min:1,    max:16,    step:1,    def:4,     desc:'多Bar扫描的Bar数量' },
+        ]
+      },
+    }
+  },
+  /* ─── 信处参数 ─── */
+  signal: {
+    label: '信处参数', icon: '⚡',
+    subs: {
+      basic: {
+        label: '基础设置', params: [
+          { key:'proc_mode',  label:'处理模式',                    type:'sel',  opts:['脉冲多普勒','脉压','MTI','MTD','STAP'], def:'脉冲多普勒', desc:'' },
+          { key:'fft_size',   label:'FFT点数',                     type:'sel',  opts:['256','512','1024','2048','4096'],    def:'1024', desc:'多普勒FFT长度' },
+          { key:'coherent_n', label:'相参积累数',     unit:'脉冲', type:'num',  min:4,    max:256,   step:4,    def:64,    desc:'CPI内相参积累脉冲数' },
+          { key:'noncoh_n',   label:'非相参积累',     unit:'次',   type:'num',  min:1,    max:16,    step:1,    def:4,     desc:'检测后非相参积累次数' },
+          { key:'doppler_en', label:'多普勒处理',                  type:'tog',                                 def:true,  desc:'' },
+          { key:'range_res',  label:'距离分辨率',     unit:'m',    type:'num',  min:0.5,  max:100,   step:0.5,  def:15,    desc:'经脉压后的距离分辨单元' },
+          { key:'vel_res',    label:'速度分辨率',     unit:'m/s',  type:'num',  min:0.1,  max:10,    step:0.1,  def:1.5,   desc:'多普勒速度分辨率' },
+          { key:'rng_bins',   label:'距离单元数',     unit:'个',   type:'num',  min:64,   max:8192,  step:64,   def:1024,  desc:'采样后的总距离单元数' },
+        ]
+      },
+      clutter: {
+        label: '杂波抑制', params: [
+          { key:'clutter_en', label:'杂波对消',                    type:'tog',                                 def:true,  desc:'' },
+          { key:'mti_order',  label:'MTI阶数',                     type:'sel',  opts:['1','2','3','4'],        def:'2',   desc:'' },
+          { key:'notch_dep',  label:'凹口深度',       unit:'dB',   type:'rng',  min:20,   max:80,    step:1,    def:40,    desc:'零速陷波深度' },
+          { key:'notch_bw',   label:'凹口带宽',       unit:'Hz',   type:'num',  min:1,    max:100,   step:1,    def:10,    desc:'零速陷波宽度' },
+          { key:'gnd_thresh', label:'地杂波门限',     unit:'dB',   type:'num',  min:-30,  max:30,    step:0.5,  def:15,    desc:'' },
+          { key:'rain_supp',  label:'雨杂波抑制',                  type:'tog',                                 def:false, desc:'' },
+          { key:'sea_supp',   label:'海杂波抑制',                  type:'tog',                                 def:false, desc:'' },
+          { key:'stap_en',    label:'STAP使能',                    type:'tog',                                 def:false, desc:'空时自适应处理' },
+          { key:'stap_dof',   label:'STAP自由度',     unit:'个',   type:'num',  min:4,    max:64,    step:4,    def:16,    desc:'' },
+        ]
+      },
+      /* ─── CFAR ─── 参数最多，约30项演示 */
+      cfar: {
+        label: 'CFAR检测', params: [
+          { key:'cfar_type',   label:'CFAR算法',                   type:'sel',  opts:['CA-CFAR','GO-CFAR','SO-CFAR','OS-CFAR','CASH','VI-CFAR','MAMIS'], def:'CA-CFAR', desc:'恒虚警检测算法类型' },
+          { key:'pfa',         label:'虚警概率',                   type:'sel',  opts:['1e-3','1e-4','1e-5','1e-6','1e-7','1e-8'], def:'1e-6', desc:'设计虚警概率' },
+          { key:'ref_cells',   label:'参考单元数',    unit:'单元', type:'num',  min:8,    max:256,   step:4,    def:32,    desc:'单侧参考窗长度' },
+          { key:'guard_cells', label:'保护单元数',    unit:'单元', type:'num',  min:1,    max:32,    step:1,    def:4,     desc:'单侧保护窗长度' },
+          { key:'thresh_fac',  label:'门限因子 α',               type:'num',  min:0.1,  max:20,    step:0.1,  def:2.5,   desc:'CFAR门限倍乘系数' },
+          { key:'os_rank',     label:'OS排序秩 k',               type:'num',  min:1,    max:128,   step:1,    def:24,    desc:'OS-CFAR有序统计的秩' },
+          { key:'os_en',       label:'OS模式使能',                type:'tog',                                 def:false, desc:'启用有序统计CFAR' },
+          /* 二维CFAR */
+          { key:'cfar2d_en',   label:'二维CFAR使能',              type:'tog',                                 def:false, desc:'同时沿距离与多普勒做CFAR' },
+          { key:'cfar2d_rng',  label:'2D距离窗',      unit:'单元', type:'num',  min:4,   max:64,    step:2,    def:16,    desc:'二维CFAR距离方向参考窗' },
+          { key:'cfar2d_dop',  label:'2D多普勒窗',    unit:'单元', type:'num',  min:4,   max:64,    step:2,    def:16,    desc:'二维CFAR多普勒方向参考窗' },
+          { key:'cfar2d_guard_r',label:'2D距离保护', unit:'单元', type:'num',  min:1,   max:16,    step:1,    def:3,     desc:'' },
+          { key:'cfar2d_guard_d',label:'2D多普勒保护',unit:'单元',type:'num',  min:1,   max:16,    step:1,    def:3,     desc:'' },
+          /* 自适应门限 */
+          { key:'adapt_thresh', label:'自适应门限',               type:'tog',                                 def:true,  desc:'根据背景噪声动态调整门限' },
+          { key:'min_thresh',   label:'最小检测门限',  unit:'dB', type:'num',  min:-30,  max:30,    step:0.5,  def:5,     desc:'门限下限' },
+          { key:'max_thresh',   label:'最大检测门限',  unit:'dB', type:'num',  min:0,    max:60,    step:0.5,  def:40,    desc:'门限上限' },
+          { key:'thresh_scale', label:'门限比例因子',              type:'rng',  min:0.5, max:3.0,   step:0.1,  def:1.0,   desc:'全局门限缩放系数' },
+          /* 非均匀环境 */
+          { key:'nhe_en',      label:'非均匀检测(NHE)',           type:'tog',                                 def:false, desc:'异常单元剔除' },
+          { key:'nhe_thresh',  label:'NHE门限',       unit:'dB',  type:'num',  min:1,    max:20,    step:0.5,  def:6,     desc:'邻近单元差值判决门限' },
+          { key:'trim_ratio',  label:'修剪比例',       unit:'%',  type:'rng',  min:0,    max:50,    step:1,    def:10,    desc:'修剪均值CFAR的修剪比例' },
+          /* 多普勒域 */
+          { key:'dop_cfar_en', label:'多普勒域CFAR',              type:'tog',                                 def:true,  desc:'' },
+          { key:'dop_ref',     label:'多普勒参考单元', unit:'个', type:'num',  min:4,    max:64,    step:2,    def:16,    desc:'' },
+          { key:'dop_guard',   label:'多普勒保护单元', unit:'个', type:'num',  min:1,    max:16,    step:1,    def:2,     desc:'' },
+          /* 角度域 */
+          { key:'az_cfar_en',  label:'方位域CFAR',                type:'tog',                                 def:false, desc:'三维CFAR-方位维' },
+          { key:'az_ref',      label:'方位参考单元',  unit:'个',  type:'num',  min:2,    max:32,    step:2,    def:8,     desc:'' },
+          /* 峰值检测 */
+          { key:'peak_find',   label:'峰值检测方式',              type:'sel',  opts:['局部极大值','质心法','插值法'],def:'局部极大值', desc:'目标幅度中心估计' },
+          { key:'min_sep',     label:'最小目标间距',  unit:'单元',type:'num',  min:1,    max:20,    step:1,    def:5,     desc:'同一距离分辨率内两目标最小间距' },
+          /* 恒虚警验证 */
+          { key:'cfar_verify', label:'CFAR验证使能',              type:'tog',                                 def:false, desc:'二次检测验证' },
+          { key:'verify_n',    label:'验证帧数',      unit:'帧',  type:'num',  min:1,    max:8,     step:1,    def:2,     desc:'' },
+          { key:'verify_pfa',  label:'验证虚警概率',              type:'sel',  opts:['1e-2','1e-3','1e-4'],   def:'1e-3', desc:'' },
+          /* 输出 */
+          { key:'max_targets', label:'最大目标数',    unit:'个',  type:'num',  min:1,    max:1024,  step:1,    def:128,   desc:'单帧输出的最大候选目标数' },
+          { key:'snr_min',     label:'最小输出SNR',   unit:'dB',  type:'num',  min:0,    max:30,    step:0.5,  def:8,     desc:'低于此SNR的点迹不输出' },
+        ]
+      },
+      pulse: {
+        label: '脉压处理', params: [
+          { key:'pc_en',      label:'脉压使能',                    type:'tog',                                 def:true,  desc:'' },
+          { key:'pc_win',     label:'加权窗函数',                  type:'sel',  opts:['矩形','汉明','汉宁','布莱克曼','泰勒(-35dB)','泰勒(-40dB)'], def:'泰勒(-40dB)', desc:'' },
+          { key:'sll',        label:'旁瓣电平',       unit:'dB',   type:'rng',  min:-60,  max:-13,   step:1,    def:-40,   desc:'加权后副瓣电平目标值' },
+          { key:'mismatch',   label:'失配滤波',                    type:'tog',                                 def:false, desc:'用于旁瓣进一步压低' },
+          { key:'pc_bits',    label:'脉压位宽',        unit:'bit', type:'sel',  opts:['16','24','32'],          def:'32',  desc:'' },
+          { key:'pc_method',  label:'脉压实现方式',                type:'sel',  opts:['频域相乘','时域卷积'],   def:'频域相乘', desc:'' },
+        ]
+      },
+    }
+  },
+  /* ─── 航迹参数 ─── */
+  track: {
+    label: '航迹参数', icon: '🎯',
+    subs: {
+      init: {
+        label: '航迹起始', params: [
+          { key:'init_hits',  label:'起始确认次数',   unit:'次',  type:'num',  min:1,    max:10,    step:1,    def:3,     desc:'M/N起始逻辑的M值' },
+          { key:'init_frames',label:'起始观测帧数',   unit:'帧',  type:'num',  min:3,    max:20,    step:1,    def:5,     desc:'M/N起始逻辑的N值' },
+          { key:'gate_r',     label:'距离波门',       unit:'m',   type:'num',  min:50,   max:2000,  step:50,   def:500,   desc:'' },
+          { key:'gate_v',     label:'速度波门',       unit:'m/s', type:'num',  min:5,    max:500,   step:5,    def:50,    desc:'' },
+          { key:'gate_az',    label:'方位波门',       unit:'°',   type:'num',  min:0.1,  max:10,    step:0.1,  def:2,     desc:'' },
+          { key:'gate_el',    label:'俯仰波门',       unit:'°',   type:'num',  min:0.1,  max:10,    step:0.1,  def:2,     desc:'' },
+        ]
+      },
+      maintain: {
+        label: '航迹维持', params: [
+          { key:'miss_max',   label:'最大漏检次数',   unit:'次',  type:'num',  min:1,    max:10,    step:1,    def:4,     desc:'' },
+          { key:'filter',     label:'滤波方式',                    type:'sel',  opts:['α-β','卡尔曼','扩展卡尔曼','无迹卡尔曼','粒子滤波'], def:'卡尔曼', desc:'' },
+          { key:'q_factor',   label:'过程噪声 Q',               type:'num',  min:0.001,max:10,    step:0.001,def:0.1,   desc:'状态转移噪声协方差缩放' },
+          { key:'r_factor',   label:'观测噪声 R',               type:'num',  min:0.001,max:10,    step:0.001,def:1.0,   desc:'观测噪声协方差缩放' },
+          { key:'smooth_n',   label:'平滑帧数',       unit:'帧',  type:'num',  min:1,    max:20,    step:1,    def:5,     desc:'' },
+          { key:'maneuver',   label:'机动目标检测',               type:'tog',                                 def:true,  desc:'IMM多模型机动检测' },
+        ]
+      },
+      delete: {
+        label: '航迹终结', params: [
+          { key:'del_miss',   label:'删除漏检帧数',   unit:'帧',  type:'num',  min:1,    max:20,    step:1,    def:8,     desc:'' },
+          { key:'del_range',  label:'超范围删除',                  type:'tog',                                 def:true,  desc:'' },
+          { key:'del_snr',    label:'低SNR删除门限',  unit:'dB',  type:'rng',  min:5,    max:30,    step:1,    def:10,    desc:'' },
+          { key:'del_speed',  label:'超速删除',                    type:'tog',                                 def:false, desc:'' },
+          { key:'max_speed',  label:'最大目标速度',   unit:'m/s', type:'num',  min:10,   max:3000,  step:10,   def:600,   desc:'' },
+        ]
+      },
+    }
+  },
+  /* ─── 波形参数 ─── */
+  waveform: {
+    label: '波形参数', icon: '〰',
+    subs: {
+      design: {
+        label: '波形设计', params: [
+          { key:'wf_type',    label:'波形类型',                    type:'sel',  opts:['LFM','NLFM','相编码','频编码','OFDM','步进频'], def:'LFM', desc:'' },
+          { key:'bandwidth',  label:'信号带宽',       unit:'MHz',  type:'num',  min:1,    max:500,   step:1,    def:100,   desc:'线性调频带宽' },
+          { key:'tbp',        label:'时宽带宽积',               type:'num',  min:10,   max:10000, step:10,   def:1000,  desc:'' },
+          { key:'code_len',   label:'编码长度',       unit:'bit',  type:'sel',  opts:['7','11','13','25','64','128','Golay'], def:'13', desc:'' },
+          { key:'step_num',   label:'步进频级数',     unit:'级',   type:'num',  min:2,    max:256,   step:2,    def:32,    desc:'步进频波形子脉冲数' },
+          { key:'step_bw',    label:'步进频间隔',     unit:'MHz',  type:'num',  min:0.1,  max:50,    step:0.1,  def:5,     desc:'' },
+        ]
+      },
+    }
+  },
 };
 
-const TAB_LABELS = { radar:'雷控参数', signal:'信处参数', track:'航迹参数', cfar:'CFAR参数', waveform:'波形参数' };
+/* ─── 板卡配置（模拟从配置文件读取） ─── */
+const BOARDS = [
+  { id:'A1', label:'主板卡',   face:'阵面A', ip:'192.168.1.101' },
+  { id:'A2', label:'信处板卡', face:'阵面A', ip:'192.168.1.102' },
+  { id:'B1', label:'主板卡',   face:'阵面B', ip:'192.168.1.201' },
+  { id:'B2', label:'信处板卡', face:'阵面B', ip:'192.168.1.202' },
+  { id:'C1', label:'主板卡',   face:'阵面C', ip:'192.168.1.301' },
+  { id:'C2', label:'信处板卡', face:'阵面C', ip:'192.168.1.302' },
+];
 
-/* ==================== 状态管理 ==================== */
-let currentBoardId = null;
-let currentTab = 'radar';
-// boardData[boardId][tabKey][paramKey] = value
-const boardData = {};
+/* ─── 状态 ─── */
+let curBoard = null, curCat = null, curSub = null;
+const data = {};   // data[boardId][cat][sub][key] = value
+const mods = {};   // mods[boardId] = Set<"cat/sub/key">
 
-function initBoardData() {
-  BOARD_CONFIG.forEach(b => {
-    boardData[b.id] = {};
-    Object.keys(PARAM_SCHEMA).forEach(tab => {
-      boardData[b.id][tab] = {};
-      PARAM_SCHEMA[tab].forEach(g => {
-        g.params.forEach(p => {
-          // Tiny variation per board to make compare interesting
-          let val = p.default;
-          if (typeof val === 'number' && b.id !== 'A1') {
-            val = +(val * (1 + (Math.random() - 0.5) * 0.06)).toFixed(3);
-          }
-          boardData[b.id][tab][p.key] = val;
+function initData() {
+  BOARDS.forEach(b => {
+    data[b.id] = {}; mods[b.id] = new Set();
+    Object.entries(SCHEMA).forEach(([cat, cv]) => {
+      data[b.id][cat] = {};
+      Object.entries(cv.subs).forEach(([sub, sv]) => {
+        data[b.id][cat][sub] = {};
+        sv.params.forEach(p => {
+          let v = p.def;
+          if (typeof v === 'number' && b.id !== 'A1')
+            v = +(v * (1 + (Math.random()-.5)*.08)).toFixed(3);
+          data[b.id][cat][sub][p.key] = v;
         });
       });
     });
   });
 }
 
-const modifiedSet = {}; // modifiedSet[boardId] = Set of 'tab:key'
-function markModified(boardId, tab, key) {
-  if (!modifiedSet[boardId]) modifiedSet[boardId] = new Set();
-  modifiedSet[boardId].add(`${tab}:${key}`);
-  refreshSidebarBadges();
-  updateStatusBar();
-}
-function isModified(boardId, tab, key) {
-  return modifiedSet[boardId]?.has(`${tab}:${key}`) ?? false;
-}
-function clearModified(boardId) {
-  if (modifiedSet[boardId]) modifiedSet[boardId].clear();
-  refreshSidebarBadges();
-  updateStatusBar();
+function setVal(cat, sub, key, v) {
+  data[curBoard][cat][sub][key] = v;
+  mods[curBoard].add(`${cat}/${sub}/${key}`);
+  refreshBoardBadges(); updateSbar();
 }
 
-/* ==================== 侧边栏 ==================== */
-function buildSidebar() {
-  const list = document.getElementById('sidebarList');
-  list.innerHTML = '';
-  BOARD_CONFIG.forEach(b => {
-    const el = document.createElement('div');
-    el.className = 'array-item';
-    el.id = 'sb-' + b.id;
-    el.onclick = () => selectBoard(b.id);
-    el.innerHTML = `
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.6">
-        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-      </svg>
-      <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.label}</span>
-      <span class="array-badge" id="badge-${b.id}">0</span>`;
-    list.appendChild(el);
+/* ─── Board list ─── */
+function buildBoardList() {
+  const el = document.getElementById('boardList');
+  el.innerHTML = '';
+  const faces = [...new Set(BOARDS.map(b => b.face))];
+  faces.forEach(face => {
+    const sep = document.createElement('div');
+    sep.className = 'face-sep'; sep.textContent = face;
+    el.appendChild(sep);
+    BOARDS.filter(b => b.face === face).forEach(b => {
+      const item = document.createElement('div');
+      item.className = 'board-item'; item.id = 'bi-'+b.id;
+      item.onclick = () => selectBoard(b.id);
+      item.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.5;flex-shrink:0">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${b.label}</span>
+        <span class="board-badge" id="bb-${b.id}">✓</span>`;
+      el.appendChild(item);
+    });
   });
 }
 
-function refreshSidebarBadges() {
-  BOARD_CONFIG.forEach(b => {
-    const cnt = modifiedSet[b.id]?.size ?? 0;
-    const badge = document.getElementById('badge-' + b.id);
-    const item  = document.getElementById('sb-' + b.id);
-    if (badge) badge.textContent = cnt > 0 ? cnt : '✓';
-    if (item) {
-      item.classList.toggle('modified', cnt > 0);
-    }
+function refreshBoardBadges() {
+  BOARDS.forEach(b => {
+    const n = mods[b.id].size;
+    const bb = document.getElementById('bb-'+b.id);
+    const bi = document.getElementById('bi-'+b.id);
+    if (bb) bb.textContent = n > 0 ? n : '✓';
+    if (bi) bi.classList.toggle('dirty', n > 0);
   });
 }
 
 function selectBoard(id) {
-  currentBoardId = id;
-  document.querySelectorAll('.array-item').forEach(el => el.classList.remove('active'));
-  const el = document.getElementById('sb-' + id);
-  if (el) el.classList.add('active');
-
-  const board = BOARD_CONFIG.find(b => b.id === id);
-  document.getElementById('boardTitle').textContent = board.label;
-  document.getElementById('boardSubtitle').textContent = `IP: ${board.ip} | 阵面: ${board.face}`;
-  document.getElementById('sb-board').textContent = board.label;
-
-  renderParams();
+  curBoard = id;
+  document.querySelectorAll('.board-item').forEach(e => e.classList.remove('sel'));
+  document.getElementById('bi-'+id)?.classList.add('sel');
+  buildNavTree();
+  document.getElementById('sb1').textContent = BOARDS.find(b=>b.id===id)?.label+' ('+id+')';
+  // re-render form if sub still valid
+  if (curCat && curSub) renderForm(curCat, curSub);
 }
 
-/* ==================== 参数面板 ==================== */
-function switchTab(el, tab) {
-  document.querySelectorAll('.param-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  currentTab = tab;
+/* ─── Nav tree ─── */
+function buildNavTree() {
+  const tree = document.getElementById('navTree');
+  tree.innerHTML = '';
+  Object.entries(SCHEMA).forEach(([cat, cv]) => {
+    const catEl = document.createElement('div');
+    catEl.className = 'nav-category';
+
+    const hd = document.createElement('div');
+    hd.className = 'nav-cat-hd' + (cat === curCat ? ' open' : '');
+    const totalParams = Object.values(cv.subs).reduce((s,sv)=>s+sv.params.length,0);
+    hd.innerHTML = `
+      <span class="caret">▶</span>
+      <span>${cv.label}</span>
+      <span class="nav-cat-cnt">${totalParams}</span>`;
+    hd.onclick = () => { hd.classList.toggle('open'); };
+
+    const children = document.createElement('div');
+    children.className = 'nav-children';
+    Object.entries(cv.subs).forEach(([sub, sv]) => {
+      const leaf = document.createElement('div');
+      leaf.className = 'nav-leaf' + (cat===curCat && sub===curSub ? ' sel':'');
+      leaf.id = `nl-${cat}-${sub}`;
+      const modCnt = curBoard ? [...mods[curBoard]].filter(k=>k.startsWith(`${cat}/${sub}/`)).length : 0;
+      leaf.innerHTML = `
+        <span style="flex:1">${sv.label}</span>
+        <span class="nav-leaf-cnt">${modCnt > 0 ? modCnt+'✎' : sv.params.length}</span>`;
+      leaf.classList.toggle('dirty', modCnt > 0);
+      leaf.onclick = () => {
+        document.querySelectorAll('.nav-leaf').forEach(e=>e.classList.remove('sel'));
+        leaf.classList.add('sel');
+        renderForm(cat, sub);
+      };
+      children.appendChild(leaf);
+    });
+
+    catEl.appendChild(hd);
+    catEl.appendChild(children);
+    tree.appendChild(catEl);
+
+    // auto-open current cat
+    if (cat === curCat) hd.classList.add('open');
+  });
+}
+
+/* ─── Param form ─── */
+let searchQ = '';
+function renderForm(cat, sub) {
+  curCat = cat; curSub = sub;
+  const cv = SCHEMA[cat], sv = cv.subs[sub];
+  document.getElementById('formTitle').textContent = `${cv.label} › ${sv.label}`;
+  document.getElementById('formPath').textContent =
+    `板卡: ${BOARDS.find(b=>b.id===curBoard)?.label} (${curBoard})  ·  共 ${sv.params.length} 个参数`;
+  document.getElementById('sb2').textContent = `${cv.label} / ${sv.label}`;
+
   renderParams();
 }
 
 function renderParams() {
-  const panel = document.getElementById('paramPanel');
-  if (!currentBoardId) return;
-  panel.innerHTML = '';
+  if (!curCat || !curSub || !curBoard) return;
+  const sv = SCHEMA[curCat].subs[curSub];
+  const q = searchQ.trim().toLowerCase();
 
-  const schema = PARAM_SCHEMA[currentTab] || [];
-  schema.forEach(group => {
-    const groupEl = document.createElement('div');
-    groupEl.className = 'param-group';
-    const headerEl = document.createElement('div');
-    headerEl.className = 'group-header';
-    headerEl.innerHTML = `<span>${group.group}</span><span class="collapse-icon">▼</span>`;
-    headerEl.onclick = () => {
-      const body = groupEl.querySelector('.group-body');
-      const icon = headerEl.querySelector('.collapse-icon');
-      const hidden = body.classList.toggle('hidden');
-      headerEl.classList.toggle('collapsed', hidden);
-    };
-    const bodyEl = document.createElement('div');
-    bodyEl.className = 'group-body';
+  const params = sv.params.filter(p =>
+    !q ||
+    p.label.toLowerCase().includes(q) ||
+    p.key.toLowerCase().includes(q) ||
+    (p.desc||'').toLowerCase().includes(q)
+  );
 
-    group.params.forEach(p => {
-      bodyEl.appendChild(buildParamRow(p));
+  const hint = document.getElementById('searchHint');
+  hint.textContent = q ? `找到 ${params.length} / ${sv.params.length} 项` : `共 ${sv.params.length} 项`;
+
+  const scroll = document.getElementById('paramScroll');
+  if (!params.length) {
+    scroll.innerHTML = `<div class="empty"><span style="font-size:13px;color:var(--t3)">没有匹配的参数「${q}」</span></div>`;
+    return;
+  }
+
+  // Chunk params into groups of up to 20 for sub-table display
+  const CHUNK = 999; // show all in one table for same subcat; chunking only if >30
+  const tables = params.length > 30
+    ? [params.slice(0, Math.ceil(params.length/2)), params.slice(Math.ceil(params.length/2))]
+    : [params];
+
+  scroll.innerHTML = '';
+  tables.forEach((chunk, ti) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'param-table-wrap';
+    if (tables.length > 1) {
+      const title = document.createElement('div');
+      title.className = 'param-table-title';
+      title.textContent = `参数列表 (${ti===0?'1':'2'} / ${tables.length})`;
+      wrap.appendChild(title);
+    }
+    const tbl = document.createElement('table');
+    tbl.className = 'ptable';
+    tbl.innerHTML = `<thead><tr>
+      <th style="width:130px">参数名称</th>
+      <th style="width:80px">单位</th>
+      <th style="width:120px">范围</th>
+      <th>当前值</th>
+      <th style="max-width:200px">说明</th>
+    </tr></thead>`;
+    const tbody = document.createElement('tbody');
+    chunk.forEach(p => {
+      const val = data[curBoard][curCat][curSub][p.key];
+      const mod = mods[curBoard].has(`${curCat}/${curSub}/${p.key}`);
+      const tr = document.createElement('tr');
+      if (mod) tr.className = 'modified-row';
+
+      // label cell
+      const labelTd = document.createElement('td');
+      labelTd.className = 'td-label';
+      labelTd.innerHTML = highlight(p.label, searchQ);
+
+      // unit
+      const unitTd = document.createElement('td');
+      unitTd.className = 'td-unit';
+      unitTd.textContent = p.unit || '—';
+
+      // range
+      const rangeTd = document.createElement('td');
+      rangeTd.className = 'td-range';
+      if (p.type === 'num' || p.type === 'rng')
+        rangeTd.textContent = `${p.min} ~ ${p.max}`;
+      else if (p.type === 'sel')
+        rangeTd.textContent = p.opts.join(' / ').slice(0,28)+(p.opts.join().length>28?'…':'');
+      else if (p.type === 'tog')
+        rangeTd.textContent = '启用 / 禁用';
+      else rangeTd.textContent = '—';
+
+      // control
+      const ctrlTd = document.createElement('td');
+      ctrlTd.className = 'td-ctrl';
+      ctrlTd.appendChild(buildCtrl(p, val, mod));
+
+      // desc
+      const descTd = document.createElement('td');
+      descTd.className = 'td-desc';
+      descTd.textContent = p.desc || '';
+
+      tr.append(labelTd, unitTd, rangeTd, ctrlTd, descTd);
+      tbody.appendChild(tr);
     });
-
-    groupEl.appendChild(headerEl);
-    groupEl.appendChild(bodyEl);
-    panel.appendChild(groupEl);
-  });
-
-  updateTabBadges();
-  updateStatusBar();
-}
-
-function buildParamRow(p) {
-  const val = boardData[currentBoardId][currentTab][p.key];
-  const modified = isModified(currentBoardId, currentTab, p.key);
-
-  if (p.type === 'toggle') {
-    const row = document.createElement('div');
-    row.className = 'param-row toggle-row';
-    row.onclick = () => {
-      const cur = boardData[currentBoardId][currentTab][p.key];
-      boardData[currentBoardId][currentTab][p.key] = !cur;
-      markModified(currentBoardId, currentTab, p.key);
-      renderParams();
-    };
-    row.innerHTML = `
-      <div class="toggle ${val ? 'on' : ''}"></div>
-      <span class="param-label">${p.label}</span>
-      <span style="font-size:11px;color:${val ? 'var(--accent-green)' : 'var(--text-muted)'};">${val ? '启用' : '禁用'}</span>
-    `;
-    return row;
-  }
-
-  if (p.type === 'range') {
-    const row = document.createElement('div');
-    row.className = 'param-row range-row';
-    row.innerHTML = `
-      <div class="range-header">
-        <span class="param-label">${p.label}${p.unit ? `<span class="unit">(${p.unit})</span>` : ''}</span>
-        <span class="range-val" id="rv-${p.key}">${val}</span>
-      </div>
-      <input type="range" class="param-input ${modified ? 'modified' : ''}" min="${p.min}" max="${p.max}" step="${p.step}" value="${val}"
-        data-key="${p.key}"
-        oninput="updateRange(this,'${p.key}')"
-        onchange="markModified('${currentBoardId}','${currentTab}','${p.key}')"
-      />
-    `;
-    return row;
-  }
-
-  const row = document.createElement('div');
-  row.className = 'param-row';
-
-  const label = document.createElement('span');
-  label.className = 'param-label';
-  label.innerHTML = `${p.label}${p.unit ? `<span class="unit">(${p.unit})</span>` : ''}`;
-
-  let input;
-  if (p.type === 'select') {
-    input = document.createElement('select');
-    input.className = `param-input${modified ? ' modified' : ''}`;
-    (p.options || []).forEach(opt => {
-      const o = document.createElement('option');
-      o.value = opt; o.textContent = opt;
-      if (String(val) === String(opt)) o.selected = true;
-      input.appendChild(o);
-    });
-  } else {
-    input = document.createElement('input');
-    input.type = 'number';
-    input.className = `param-input${modified ? ' modified' : ''}`;
-    input.min = p.min; input.max = p.max; input.step = p.step;
-    input.value = val;
-  }
-
-  input.onchange = () => {
-    boardData[currentBoardId][currentTab][p.key] = p.type === 'number' ? +input.value : input.value;
-    markModified(currentBoardId, currentTab, p.key);
-    input.classList.add('modified');
-  };
-
-  row.appendChild(label);
-  row.appendChild(input);
-  return row;
-}
-
-function updateRange(el, key) {
-  boardData[currentBoardId][currentTab][key] = +el.value;
-  const rv = document.getElementById('rv-' + key);
-  if (rv) rv.textContent = el.value;
-}
-
-function updateTabBadges() {
-  if (!currentBoardId) return;
-  Object.keys(PARAM_SCHEMA).forEach(tab => {
-    let cnt = 0;
-    PARAM_SCHEMA[tab].forEach(g => cnt += g.params.length);
-    const el = document.getElementById('tb-' + tab);
-    if (el) el.textContent = cnt;
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    scroll.appendChild(wrap);
   });
 }
 
-/* ==================== Status Bar ==================== */
-function updateStatusBar() {
-  const modCnt = (currentBoardId && modifiedSet[currentBoardId]) ? modifiedSet[currentBoardId].size : 0;
-  document.getElementById('sb-modified').textContent = modCnt > 0 ? `已修改 ${modCnt} 项` : '无未保存修改';
-  document.getElementById('sb-tab').textContent = TAB_LABELS[currentTab] || '—';
-  document.getElementById('sb-time').textContent = new Date().toLocaleTimeString('zh-CN');
+function highlight(text, q) {
+  if (!q) return text;
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx < 0) return text;
+  return text.slice(0,idx) + `<span class="hl">${text.slice(idx,idx+q.length)}</span>` + text.slice(idx+q.length);
 }
-setInterval(updateStatusBar, 1000);
 
-/* ==================== Board Actions ==================== */
-function sendBoard() {
-  if (!currentBoardId) return showToast('请先选择板卡','warning');
-  showToast(`参数已下发至 ${BOARD_CONFIG.find(b=>b.id===currentBoardId).label}`, 'success');
-  clearModified(currentBoardId);
+function buildCtrl(p, val, mod) {
+  const wrap = document.createElement('div');
+
+  if (p.type === 'tog') {
+    wrap.className = 'ctoggle-row';
+    const tog = document.createElement('div');
+    tog.className = 'ctoggle' + (val ? ' on' : '');
+    const lbl = document.createElement('span');
+    lbl.className = 'toggle-label';
+    lbl.style.color = val ? 'var(--green)' : 'var(--t3)';
+    lbl.textContent = val ? '启用' : '禁用';
+    wrap.onclick = () => {
+      const cur = data[curBoard][curCat][curSub][p.key];
+      setVal(curCat, curSub, p.key, !cur);
+      buildNavTree(); renderParams();
+    };
+    wrap.append(tog, lbl);
+    return wrap;
+  }
+
+  if (p.type === 'rng') {
+    wrap.className = 'crange-wrap';
+    const inp = document.createElement('input');
+    inp.type = 'range'; inp.className = 'crange';
+    inp.min = p.min; inp.max = p.max; inp.step = p.step; inp.value = val;
+    const display = document.createElement('span');
+    display.className = 'crange-val'; display.textContent = val;
+    inp.oninput = () => { display.textContent = inp.value; };
+    inp.onchange = () => { setVal(curCat, curSub, p.key, +inp.value); buildNavTree(); };
+    wrap.append(inp, display);
+    return wrap;
+  }
+
+  if (p.type === 'sel') {
+    const sel = document.createElement('select');
+    sel.className = 'cinput' + (mod ? ' mod' : '');
+    p.opts.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o; opt.textContent = o;
+      if (String(val) === String(o)) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = () => { setVal(curCat, curSub, p.key, sel.value); buildNavTree(); sel.classList.add('mod'); };
+    return sel;
+  }
+
+  // num
+  const inp = document.createElement('input');
+  inp.type = 'number'; inp.className = 'cinput' + (mod ? ' mod' : '');
+  inp.min = p.min; inp.max = p.max; inp.step = p.step; inp.value = val;
+  inp.onchange = () => { setVal(curCat, curSub, p.key, +inp.value); buildNavTree(); inp.classList.add('mod'); };
+  return inp;
+}
+
+function onSearch() {
+  searchQ = document.getElementById('searchInput').value;
   renderParams();
 }
 
+/* ─── Board actions ─── */
+function readParams()  { if(!curBoard) return toast('请先选择板卡','warn'); toast('已读取板卡参数','ok'); }
+function sendBoard()   {
+  if (!curBoard) return toast('请先选择板卡','warn');
+  mods[curBoard].clear(); refreshBoardBadges(); buildNavTree(); renderParams(); updateSbar();
+  toast(`参数已下发至 ${BOARDS.find(b=>b.id===curBoard)?.label} (${curBoard})`,'ok');
+}
+function resetBoard()  {
+  if (!curBoard) return toast('请先选择板卡','warn');
+  Object.entries(SCHEMA).forEach(([cat,cv]) =>
+    Object.entries(cv.subs).forEach(([sub,sv]) =>
+      sv.params.forEach(p => data[curBoard][cat][sub][p.key] = p.def)
+    )
+  );
+  mods[curBoard].clear(); refreshBoardBadges(); buildNavTree(); renderParams(); updateSbar();
+  toast('已恢复全部默认值','warn');
+}
 function sendAll() {
-  BOARD_CONFIG.forEach(b => clearModified(b.id));
-  renderParams();
-  showToast('所有阵面参数已全部下发', 'success');
+  BOARDS.forEach(b => mods[b.id].clear());
+  refreshBoardBadges(); buildNavTree(); if(curCat&&curSub) renderParams(); updateSbar();
+  toast('所有阵面参数已全部下发','ok');
 }
 
-function loadBoardParams() {
-  if (!currentBoardId) return showToast('请先选择板卡','warning');
-  showToast(`已读取 ${BOARD_CONFIG.find(b=>b.id===currentBoardId).label} 当前参数`, 'success');
-}
-
-function resetBoard() {
-  if (!currentBoardId) return showToast('请先选择板卡','warning');
-  Object.keys(PARAM_SCHEMA).forEach(tab => {
-    PARAM_SCHEMA[tab].forEach(g => g.params.forEach(p => {
-      boardData[currentBoardId][tab][p.key] = p.default;
-    }));
+/* ─── Compare ─── */
+function openCmp() {
+  // populate type selector
+  const sel = document.getElementById('cmpType');
+  sel.innerHTML = '';
+  Object.entries(SCHEMA).forEach(([cat,cv]) => {
+    Object.entries(cv.subs).forEach(([sub,sv]) => {
+      const o = document.createElement('option');
+      o.value = `${cat}/${sub}`; o.textContent = `${cv.label} › ${sv.label}`;
+      sel.appendChild(o);
+    });
   });
-  clearModified(currentBoardId);
-  renderParams();
-  showToast('已恢复默认值', 'warning');
+  if (curCat && curSub) sel.value = `${curCat}/${curSub}`;
+  document.getElementById('cmpOverlay').classList.add('show');
+  renderCmp();
 }
-
-/* ==================== Compare ==================== */
-function openCompare() {
-  document.getElementById('compareOverlay').classList.add('show');
-  renderCompare();
-}
-function closeCompare() {
-  document.getElementById('compareOverlay').classList.remove('show');
-}
-
-function renderCompare() {
-  const type = document.getElementById('compareType').value;
-  const diffOnly = document.getElementById('diffOnly').checked;
-  const schema = PARAM_SCHEMA[type] || [];
-  const allParams = schema.flatMap(g => g.params);
+function renderCmp() {
+  const [cat, sub] = document.getElementById('cmpType').value.split('/');
+  const diffOnly = document.getElementById('cmpDiffOnly').checked;
+  const sv = SCHEMA[cat]?.subs[sub];
+  if (!sv) return;
 
   const thead = `<thead><tr>
-    <th>参数名</th>
-    ${BOARD_CONFIG.map(b=>`<th>${b.label.replace(' - ','<br/><small style="font-weight:400;color:var(--text-muted)">')}</small></th>`).join('')}
+    <th>参数名</th><th>单位</th>
+    ${BOARDS.map(b=>`<th>${b.face}<br/><small style="font-weight:400;color:var(--t3)">${b.label}</small>`).join('')}
   </tr></thead>`;
 
-  const rows = allParams.map(p => {
-    const vals = BOARD_CONFIG.map(b => String(boardData[b.id][type][p.key]));
+  const rows = sv.params.map(p => {
+    const vals = BOARDS.map(b => String(data[b.id][cat][sub][p.key]));
     const hasDiff = new Set(vals).size > 1;
     if (diffOnly && !hasDiff) return '';
-    const cells = vals.map(v =>
-      `<td class="${hasDiff ? 'diff-cell' : 'same-cell'}">${v}</td>`
-    ).join('');
-    return `<tr><td style="color:var(--text-secondary);white-space:nowrap">${p.label}${p.unit ? ` <small style="color:var(--text-muted)">(${p.unit})</small>` : ''}</td>${cells}</tr>`;
+    const cells = vals.map(v => `<td class="${hasDiff?'cmp-diff':'cmp-same'}">${v}</td>`).join('');
+    return `<tr><td style="white-space:nowrap;color:var(--t2)">${p.label}</td><td style="color:var(--t3);font-size:11px">${p.unit||'—'}</td>${cells}</tr>`;
   }).filter(Boolean).join('');
 
-  document.getElementById('compareTable').innerHTML = thead + `<tbody>${rows || '<tr><td colspan="99" style="text-align:center;color:var(--text-muted);padding:20px">所有参数值相同</td></tr>'}</tbody>`;
+  document.getElementById('cmpTable').innerHTML = thead +
+    `<tbody>${rows || '<tr><td colspan="99" style="text-align:center;padding:20px;color:var(--t3)">所有参数值相同</td></tr>'}</tbody>`;
 }
 
-/* ==================== Config Groups ==================== */
-const savedConfigs = [
-  { name: '默认初始配置', time: '2026-04-01 08:00', data: null },
-  { name: '任务A搜索模式', time: '2026-04-02 14:30', data: null },
+/* ─── Config groups ─── */
+const savedCfgs = [
+  { name:'默认初始配置', time:'2026-04-01 08:00', snap:null },
+  { name:'任务A搜索模式', time:'2026-04-02 14:30', snap:null },
 ];
-
-function openConfig() {
-  document.getElementById('configOverlay').classList.add('show');
-  renderConfigList();
+function openCfg() {
+  document.getElementById('cfgOverlay').classList.add('show');
+  renderCfgList();
 }
-function closeConfig() {
-  document.getElementById('configOverlay').classList.remove('show');
-}
-
-function renderConfigList() {
-  const list = document.getElementById('configList');
-  list.innerHTML = '';
-  savedConfigs.forEach((cfg, i) => {
-    const el = document.createElement('div');
-    el.className = 'config-item';
-    el.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-blue);flex-shrink:0">
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-        <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-      </svg>
+function renderCfgList() {
+  const el = document.getElementById('cfgList');
+  el.innerHTML = savedCfgs.map((c,i) => `
+    <div class="cfg-item">
       <div>
-        <div class="config-item-name">${cfg.name}</div>
-        <div class="config-item-meta">保存时间: ${cfg.time}</div>
+        <div class="cfg-name">${c.name}</div>
+        <div class="cfg-meta">保存时间: ${c.time}</div>
       </div>
-      <div class="config-item-actions">
-        <button class="btn btn-secondary" style="padding:3px 10px;font-size:12px" onclick="loadConfig(${i})">加载</button>
-        <button class="btn btn-danger" style="padding:3px 10px;font-size:12px" onclick="deleteConfig(${i})">删除</button>
-      </div>`;
-    list.appendChild(el);
-  });
+      <div class="cfg-ia">
+        <button class="btn btn-ghost" style="padding:3px 9px;font-size:11px" onclick="loadCfg(${i})">加载</button>
+        <button class="btn btn-red"   style="padding:3px 9px;font-size:11px" onclick="deleteCfg(${i})">删除</button>
+      </div>
+    </div>`).join('');
 }
-
 function saveConfig() {
   const name = document.getElementById('saveNameInput').value.trim();
-  if (!name) return showToast('请输入配置组名称', 'warning');
-  savedConfigs.push({ name, time: new Date().toLocaleString('zh-CN'), data: JSON.parse(JSON.stringify(boardData)) });
+  if (!name) return toast('请输入配置组名称','warn');
+  savedCfgs.push({ name, time: new Date().toLocaleString('zh-CN'), snap: JSON.parse(JSON.stringify(data)) });
   document.getElementById('saveNameInput').value = '';
-  renderConfigList();
-  showToast(`配置组「${name}」已保存`, 'success');
+  renderCfgList();
+  toast(`配置组「${name}」已保存`,'ok');
+}
+function loadCfg(i) {
+  const c = savedCfgs[i];
+  if (c.snap) { Object.assign(data, JSON.parse(JSON.stringify(c.snap))); BOARDS.forEach(b=>mods[b.id].clear()); }
+  if (curCat&&curSub) renderParams(); buildNavTree(); refreshBoardBadges(); updateSbar();
+  document.getElementById('cfgOverlay').classList.remove('show');
+  toast(`已加载配置组「${c.name}」`,'ok');
+}
+function deleteCfg(i) {
+  const name = savedCfgs[i].name;
+  savedCfgs.splice(i,1); renderCfgList();
+  toast(`已删除「${name}」`,'warn');
 }
 
-function loadConfig(i) {
-  const cfg = savedConfigs[i];
-  if (cfg.data) {
-    Object.assign(boardData, JSON.parse(JSON.stringify(cfg.data)));
-    BOARD_CONFIG.forEach(b => clearModified(b.id));
-  }
-  if (currentBoardId) renderParams();
-  closeConfig();
-  showToast(`已加载配置组「${cfg.name}」`, 'success');
+/* ─── Utils ─── */
+function updateSbar() {
+  const n = curBoard ? mods[curBoard].size : 0;
+  document.getElementById('sb3').textContent = n > 0 ? `${n} 项` : '无';
+  document.getElementById('sbtime').textContent = new Date().toLocaleTimeString('zh-CN');
 }
+setInterval(updateSbar, 1000);
 
-function deleteConfig(i) {
-  const name = savedConfigs[i].name;
-  savedConfigs.splice(i, 1);
-  renderConfigList();
-  showToast(`已删除配置组「${name}」`, 'warning');
-}
+function closeIfBg(e, id) { if (e.target.id===id) document.getElementById(id).classList.remove('show'); }
 
-/* ==================== Toast ==================== */
-function showToast(msg, type='success') {
-  const icons = { success:'✓', warning:'⚠', error:'✕' };
-  const tc = document.getElementById('toastContainer');
+function toast(msg, type='ok') {
+  const icons = {ok:'✓', warn:'⚠', err:'✕'};
+  const tc = document.getElementById('tc');
   const t = document.createElement('div');
   t.className = `toast ${type}`;
-  t.innerHTML = `<span>${icons[type]||'•'}</span><span>${msg}</span>`;
+  t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
   tc.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  setTimeout(() => t.remove(), 3200);
 }
 
-/* ==================== Modal Backdrop ==================== */
-function closeIfBackdrop(e, id) {
-  if (e.target.id === id) document.getElementById(id).classList.remove('show');
-}
-
-/* ==================== Init ==================== */
-initBoardData();
-buildSidebar();
-refreshSidebarBadges();
-updateStatusBar();
-
-// Auto-select first board
-selectBoard(BOARD_CONFIG[0].id);
+/* ─── Init ─── */
+initData();
+buildBoardList();
+refreshBoardBadges();
+updateSbar();
+selectBoard(BOARDS[0].id);
+// auto-open first subcat
+renderForm('signal', 'cfar');
+// open its nav node
+setTimeout(() => {
+  document.querySelectorAll('.nav-cat-hd').forEach(h => {
+    if (h.textContent.includes('信处')) h.classList.add('open');
+  });
+  document.getElementById('nl-signal-cfar')?.classList.add('sel');
+}, 50);
 </script>
 </body>
 </html>

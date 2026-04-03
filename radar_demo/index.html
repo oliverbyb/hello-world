@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>雷达显控软件 - 参数配置原型</title>
+  <style>
+    /* ===== CSS Reset & Variables ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-base:       #0d1117;
+      --bg-surface:    #161b22;
+      --bg-card:       #1c2128;
+      --bg-hover:      #21262d;
+      --border:        #30363d;
+      --border-focus:  #388bfd;
+      --text-primary:  #e6edf3;
+      --text-secondary:#8b949e;
+      --text-muted:    #484f58;
+      --accent-blue:   #388bfd;
+      --accent-green:  #3fb950;
+      --accent-yellow: #d29922;
+      --accent-red:    #f85149;
+      --accent-purple: #a371f7;
+      --accent-cyan:   #39d353;
+      --tab-active-bg: #21262d;
+      --shadow:        0 4px 24px rgba(0,0,0,.45);
+      --radius:        8px;
+      --radius-sm:     5px;
+    }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ===== Top Toolbar ===== */
+    .toolbar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+    .toolbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--accent-blue);
+      letter-spacing: .5px;
+    }
+    .toolbar-logo svg { opacity: .9; }
+    .toolbar-sep { width: 1px; height: 24px; background: var(--border); }
+    .toolbar-section { font-size: 12px; color: var(--text-secondary); }
+
+    .toolbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 14px; border-radius: var(--radius-sm);
+      font-size: 13px; cursor: pointer; border: none;
+      transition: background .15s, color .15s;
+    }
+    .btn-primary { background: var(--accent-blue); color: #fff; }
+    .btn-primary:hover { background: #1f6feb; }
+    .btn-secondary { background: var(--bg-hover); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-success { background: var(--accent-green); color: #000; }
+    .btn-success:hover { background: #2ea043; }
+    .btn-warning { background: var(--accent-yellow); color: #000; }
+    .btn-warning:hover { background: #b08800; }
+    .btn-danger { background: var(--accent-red); color: #fff; }
+    .btn-danger:hover { background: #da3633; }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 6px var(--accent-green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ===== Main Layout ===== */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ===== Left Sidebar – Array Face Nav ===== */
+    .sidebar {
+      width: 200px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 12px 14px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-list { flex: 1; overflow-y: auto; padding: 6px 6px; }
+
+    .array-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 13px;
+      color: var(--text-secondary);
+      transition: background .12s, color .12s;
+      position: relative;
+      margin-bottom: 2px;
+    }
+    .array-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .array-item.active { background: var(--tab-active-bg); color: var(--accent-blue); font-weight: 600; }
+    .array-item.active::before {
+      content: '';
+      position: absolute; left: 0; top: 4px; bottom: 4px;
+      width: 3px; background: var(--accent-blue); border-radius: 2px;
+    }
+    .array-badge {
+      margin-left: auto;
+      font-size: 10px; padding: 1px 6px;
+      border-radius: 8px;
+      background: var(--bg-base); color: var(--text-muted);
+    }
+    .array-item.active .array-badge { background: var(--accent-blue); color: #fff; }
+    .array-item.modified .array-badge { background: var(--accent-yellow); color: #000; }
+
+    .sidebar-footer {
+      padding: 10px;
+      border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .sidebar-footer .btn { width: 100%; justify-content: center; font-size: 12px; padding: 6px; }
+
+    /* ===== Content Area ===== */
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Board header */
+    .board-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .board-title {
+      font-size: 16px; font-weight: 700; color: var(--text-primary);
+    }
+    .board-subtitle { font-size: 12px; color: var(--text-secondary); }
+    .board-actions { margin-left: auto; display: flex; gap: 8px; }
+
+    /* ===== Parameter Type Tabs ===== */
+    .param-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+      padding: 0 20px;
+      flex-shrink: 0;
+    }
+    .param-tab {
+      padding: 10px 18px;
+      font-size: 13px;
+      cursor: pointer;
+      border: none; background: none;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .param-tab:hover { color: var(--text-primary); }
+    .param-tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); font-weight: 600; }
+    .param-tab .tab-badge {
+      margin-left: 5px; font-size: 10px; padding: 1px 5px;
+      background: var(--bg-hover); border-radius: 8px;
+      color: var(--text-muted);
+    }
+
+    /* ===== Param Panel ===== */
+    .param-panel {
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      align-content: start;
+    }
+
+    .param-group {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .group-header {
+      padding: 10px 14px;
+      background: var(--bg-hover);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600; color: var(--text-primary);
+      cursor: pointer;
+      user-select: none;
+    }
+    .group-header .collapse-icon { margin-left: auto; transition: transform .2s; font-size: 11px; color: var(--text-muted); }
+    .group-header.collapsed .collapse-icon { transform: rotate(-90deg); }
+    .group-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .group-body.hidden { display: none; }
+
+    .param-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .param-label {
+      font-size: 12px; color: var(--text-secondary);
+      min-width: 130px; flex-shrink: 0;
+    }
+    .param-label .unit {
+      font-size: 10px; color: var(--text-muted); margin-left: 3px;
+    }
+    .param-input {
+      flex: 1;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 5px 9px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      transition: border-color .15s;
+      outline: none;
+    }
+    .param-input:focus { border-color: var(--border-focus); }
+    .param-input.modified { border-color: var(--accent-yellow); background: rgba(210,153,34,.08); }
+
+    select.param-input { cursor: pointer; }
+    .param-input[type="range"] {
+      padding: 0; height: 4px; cursor: pointer;
+      background: var(--border); border: none;
+      border-radius: 2px; accent-color: var(--accent-blue);
+    }
+    .range-row { flex-direction: column; align-items: stretch; gap: 4px; }
+    .range-row .range-header { display: flex; justify-content: space-between; align-items: center; }
+    .range-val { font-size: 12px; color: var(--accent-blue); font-weight: 600; min-width: 40px; text-align: right; }
+
+    .toggle-row { cursor: pointer; gap: 10px; }
+    .toggle { width: 34px; height: 18px; border-radius: 9px; background: var(--border); position: relative; flex-shrink: 0; transition: background .2s; }
+    .toggle.on { background: var(--accent-blue); }
+    .toggle::after { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; transition: left .2s; }
+    .toggle.on::after { left:18px; }
+
+    /* ===== Bottom Status Bar ===== */
+    .statusbar {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      padding: 4px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .statusbar .sep { color: var(--border); }
+
+    /* ===== Compare Panel ===== */
+    .compare-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      z-index: 500; display: none; align-items: center; justify-content: center;
+    }
+    .compare-overlay.show { display: flex; }
+    .compare-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: min(92vw, 900px);
+      max-height: 80vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .modal-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .modal-title { font-size: 15px; font-weight: 700; }
+    .modal-close { margin-left: auto; cursor: pointer; color: var(--text-muted); font-size: 18px; line-height: 1; }
+    .modal-close:hover { color: var(--text-primary); }
+    .modal-body { overflow-y: auto; padding: 16px; }
+
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .compare-table th {
+      background: var(--bg-hover); color: var(--text-secondary);
+      padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+    }
+    .compare-table td {
+      padding: 7px 12px; border-bottom: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+    .compare-table tr:hover td { background: var(--bg-hover); }
+    .diff-cell { color: var(--accent-yellow); font-weight: 600; }
+    .same-cell { color: var(--text-muted); }
+
+    /* ===== Config Save/Load Panel ===== */
+    .config-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      z-index: 500; display: none; align-items: center; justify-content: center;
+    }
+    .config-overlay.show { display: flex; }
+    .config-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: min(92vw, 560px);
+      display: flex; flex-direction: column;
+      box-shadow: var(--shadow);
+    }
+    .config-list { padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+    .config-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .config-item:hover { border-color: var(--accent-blue); }
+    .config-item-name { font-size: 13px; font-weight: 600; }
+    .config-item-meta { font-size: 11px; color: var(--text-muted); }
+    .config-item-actions { margin-left: auto; display: flex; gap: 6px; }
+
+    .save-form { padding: 0 16px 16px; display: flex; gap: 8px; }
+    .save-input {
+      flex: 1; background: var(--bg-base); border: 1px solid var(--border);
+      color: var(--text-primary); padding: 7px 10px; border-radius: var(--radius-sm);
+      font-size: 13px; outline: none;
+    }
+    .save-input:focus { border-color: var(--border-focus); }
+
+    /* ===== Scrollbar ===== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* ===== Toast ===== */
+    .toast-container { position: fixed; bottom: 40px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 16px;
+      font-size: 13px; color: var(--text-primary);
+      box-shadow: var(--shadow);
+      animation: slideIn .25s ease; display: flex; align-items: center; gap: 8px;
+    }
+    .toast.success { border-left: 3px solid var(--accent-green); }
+    .toast.warning { border-left: 3px solid var(--accent-yellow); }
+    .toast.error   { border-left: 3px solid var(--accent-red); }
+    @keyframes slideIn { from{transform:translateX(80px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 900px) {
+      .sidebar { width: 160px; }
+      .param-panel { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== Top Toolbar ===== -->
+<div class="toolbar">
+  <div class="toolbar-logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+      <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+      <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+    </svg>
+    雷达显控系统
+  </div>
+  <div class="toolbar-sep"></div>
+  <span class="toolbar-section">多阵面参数配置管理</span>
+  <div class="status-dot" title="系统连接正常"></div>
+  <span style="font-size:12px;color:var(--accent-green)">系统在线</span>
+
+  <div class="toolbar-actions">
+    <button class="btn btn-secondary" onclick="openCompare()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      跨阵面对比
+    </button>
+    <button class="btn btn-secondary" onclick="openConfig()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+      </svg>
+      配置组管理
+    </button>
+    <button class="btn btn-success" onclick="sendAll()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+      下发全部参数
+    </button>
+  </div>
+</div>
+
+<!-- ===== Main Layout ===== -->
+<div class="main-layout">
+
+  <!-- Left Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">阵面板卡</div>
+    <div class="sidebar-list" id="sidebarList"></div>
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary" onclick="showToast('已同步配置文件','success')">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        刷新板卡列表
+      </button>
+    </div>
+  </div>
+
+  <!-- Content Area -->
+  <div class="content">
+    <div class="board-header" id="boardHeader">
+      <div>
+        <div class="board-title" id="boardTitle">—</div>
+        <div class="board-subtitle" id="boardSubtitle">请选择板卡</div>
+      </div>
+      <div class="board-actions">
+        <button class="btn btn-secondary" onclick="loadBoardParams()">读取当前参数</button>
+        <button class="btn btn-warning" onclick="sendBoard()">下发本板卡参数</button>
+        <button class="btn btn-secondary" onclick="resetBoard()">恢复默认值</button>
+      </div>
+    </div>
+
+    <!-- Parameter Type Tabs -->
+    <div class="param-tabs" id="paramTabs">
+      <button class="param-tab active" data-tab="radar" onclick="switchTab(this,'radar')">
+        雷控参数 <span class="tab-badge" id="tb-radar">—</span>
+      </button>
+      <button class="param-tab" data-tab="signal" onclick="switchTab(this,'signal')">
+        信处参数 <span class="tab-badge" id="tb-signal">—</span>
+      </button>
+      <button class="param-tab" data-tab="track" onclick="switchTab(this,'track')">
+        航迹参数 <span class="tab-badge" id="tb-track">—</span>
+      </button>
+      <button class="param-tab" data-tab="cfar" onclick="switchTab(this,'cfar')">
+        CFAR参数 <span class="tab-badge" id="tb-cfar">—</span>
+      </button>
+      <button class="param-tab" data-tab="waveform" onclick="switchTab(this,'waveform')">
+        波形参数 <span class="tab-badge" id="tb-waveform">—</span>
+      </button>
+    </div>
+
+    <!-- Parameter Panel -->
+    <div class="param-panel" id="paramPanel">
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;color:var(--text-muted);gap:12px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".3">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+          <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+        </svg>
+        <span style="font-size:14px">请从左侧选择板卡以查看参数</span>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="statusbar">
+      <span id="sb-board">未选择</span>
+      <span class="sep">|</span>
+      <span id="sb-tab">—</span>
+      <span class="sep">|</span>
+      <span id="sb-modified" style="color:var(--accent-yellow)">未修改</span>
+      <span class="sep">|</span>
+      <span id="sb-time">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Compare Modal ===== -->
+<div class="compare-overlay" id="compareOverlay" onclick="closeIfBackdrop(event,'compareOverlay')">
+  <div class="compare-modal">
+    <div class="modal-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span class="modal-title">跨阵面参数对比</span>
+
+      <div style="margin-left:12px;display:flex;align-items:center;gap:8px;font-size:12px;">
+        <span style="color:var(--text-secondary)">参数类型：</span>
+        <select class="param-input" id="compareType" style="width:120px" onchange="renderCompare()">
+          <option value="radar">雷控参数</option>
+          <option value="signal">信处参数</option>
+          <option value="track">航迹参数</option>
+          <option value="cfar">CFAR参数</option>
+          <option value="waveform">波形参数</option>
+        </select>
+      </div>
+      <div style="margin-left:8px;display:flex;align-items:center;gap:6px;font-size:12px;">
+        <label style="display:flex;align-items:center;gap:4px;color:var(--text-secondary);cursor:pointer;">
+          <input type="checkbox" id="diffOnly" onchange="renderCompare()" style="accent-color:var(--accent-blue)"/>
+          仅显示差异项
+        </label>
+      </div>
+      <span class="modal-close" onclick="closeCompare()">×</span>
+    </div>
+    <div class="modal-body">
+      <table class="compare-table" id="compareTable"></table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Config Modal ===== -->
+<div class="config-overlay" id="configOverlay" onclick="closeIfBackdrop(event,'configOverlay')">
+  <div class="config-modal">
+    <div class="modal-header">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+      </svg>
+      <span class="modal-title">配置组管理</span>
+      <span class="modal-close" onclick="closeConfig()">×</span>
+    </div>
+    <div style="padding:12px 16px 8px;font-size:12px;color:var(--text-secondary);">
+      每个配置组保存当前所有板卡、所有类型参数的完整快照，可随时加载恢复。
+    </div>
+    <div class="config-list" id="configList"></div>
+    <div style="padding:4px 16px 6px;font-size:12px;color:var(--text-secondary);">新建配置组</div>
+    <div class="save-form">
+      <input class="save-input" id="saveNameInput" placeholder="输入配置组名称，如：任务A初始化配置" />
+      <button class="btn btn-primary" onclick="saveConfig()">保存当前</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ==================== 数据模型 ==================== */
+
+// 从"配置文件"动态生成的阵面板卡列表（实际项目中从后端/配置文件读取）
+const BOARD_CONFIG = [
+  { id: 'A1', label: '阵面A - 主板卡', face: 'A', ip: '192.168.1.101' },
+  { id: 'A2', label: '阵面A - 信处板卡', face: 'A', ip: '192.168.1.102' },
+  { id: 'B1', label: '阵面B - 主板卡', face: 'B', ip: '192.168.1.201' },
+  { id: 'B2', label: '阵面B - 信处板卡', face: 'B', ip: '192.168.1.202' },
+  { id: 'C1', label: '阵面C - 主板卡', face: 'C', ip: '192.168.1.301' },
+  { id: 'C2', label: '阵面C - 信处板卡', face: 'C', ip: '192.168.1.302' },
+];
+
+// 参数定义模板（每块板卡共用同一套模板，值各自独立）
+const PARAM_SCHEMA = {
+  radar: [
+    {
+      group: '发射控制',
+      params: [
+        { key: 'tx_power',     label: '发射功率',      unit: 'dBm',  type: 'number', min: 0,   max: 100,  step: 0.1,  default: 43.5 },
+        { key: 'tx_freq',      label: '载波频率',      unit: 'MHz',  type: 'number', min: 2000, max: 8000, step: 1,    default: 3500 },
+        { key: 'tx_enable',    label: '发射使能',                    type: 'toggle',                                  default: true  },
+        { key: 'prf',          label: 'PRF',           unit: 'Hz',   type: 'number', min: 100,  max: 5000, step: 10,   default: 1000 },
+        { key: 'pulse_width',  label: '脉冲宽度',      unit: 'μs',   type: 'number', min: 0.1,  max: 100,  step: 0.1,  default: 10   },
+      ]
+    },
+    {
+      group: '接收控制',
+      params: [
+        { key: 'rx_gain',      label: '接收增益',      unit: 'dB',   type: 'range',  min: 0,   max: 60,   step: 1,    default: 30   },
+        { key: 'rx_bandwidth', label: '接收带宽',      unit: 'MHz',  type: 'select', options: ['5','10','20','40','80'], default: '20' },
+        { key: 'lna_enable',   label: 'LNA使能',                     type: 'toggle',                                  default: true  },
+        { key: 'rx_atten',     label: '接收衰减',      unit: 'dB',   type: 'number', min: 0,   max: 31.5, step: 0.5,  default: 6    },
+      ]
+    },
+    {
+      group: '扫描控制',
+      params: [
+        { key: 'scan_mode',    label: '扫描模式',                    type: 'select', options: ['机械扫描','相扫','混合扫描'], default: '相扫' },
+        { key: 'az_start',     label: '方位起始角',    unit: '°',    type: 'number', min: -180, max: 180, step: 0.1,  default: -60  },
+        { key: 'az_end',       label: '方位终止角',    unit: '°',    type: 'number', min: -180, max: 180, step: 0.1,  default: 60   },
+        { key: 'el_start',     label: '俯仰起始角',    unit: '°',    type: 'number', min: -30,  max: 90,  step: 0.1,  default: 0    },
+        { key: 'el_end',       label: '俯仰终止角',    unit: '°',    type: 'number', min: -30,  max: 90,  step: 0.1,  default: 30   },
+        { key: 'scan_rate',    label: '扫描速率',      unit: '°/s',  type: 'range',  min: 1,   max: 60,   step: 1,    default: 12   },
+      ]
+    },
+  ],
+  signal: [
+    {
+      group: '信号处理基础',
+      params: [
+        { key: 'sig_mode',     label: '处理模式',                    type: 'select', options: ['脉冲多普勒','脉压','MTI','MTD'], default: '脉冲多普勒' },
+        { key: 'fft_size',     label: 'FFT点数',                     type: 'select', options: ['256','512','1024','2048','4096'], default: '1024' },
+        { key: 'coherent_n',   label: '相参积累数',  unit: '脉冲',   type: 'number', min: 4,   max: 256,  step: 4,    default: 64   },
+        { key: 'noncoherent',  label: '非相参积累',  unit: '次',     type: 'number', min: 1,   max: 16,   step: 1,    default: 4    },
+        { key: 'doppler_enable',label: '多普勒处理',                  type: 'toggle',                                  default: true  },
+      ]
+    },
+    {
+      group: '杂波抑制',
+      params: [
+        { key: 'clutter_cancel',label: '杂波对消',                   type: 'toggle',                                  default: true  },
+        { key: 'mti_order',    label: 'MTI阶数',                     type: 'select', options: ['1','2','3','4'],      default: '2'   },
+        { key: 'notch_depth',  label: '凹口深度',    unit: 'dB',     type: 'range',  min: 20,  max: 80,   step: 1,    default: 40   },
+        { key: 'ground_thresh',label: '地杂波门限',  unit: 'dB',     type: 'number', min: -30, max: 30,   step: 0.5,  default: 15   },
+      ]
+    },
+  ],
+  track: [
+    {
+      group: '航迹起始',
+      params: [
+        { key: 'init_hits',    label: '起始确认次数', unit: '次',    type: 'number', min: 1,   max: 10,   step: 1,    default: 3    },
+        { key: 'init_frames',  label: '起始帧数',     unit: '帧',    type: 'number', min: 3,   max: 20,   step: 1,    default: 5    },
+        { key: 'gate_r',       label: '距离波门',     unit: 'm',     type: 'number', min: 50,  max: 2000, step: 50,   default: 500  },
+        { key: 'gate_v',       label: '速度波门',     unit: 'm/s',   type: 'number', min: 5,   max: 500,  step: 5,    default: 50   },
+        { key: 'gate_az',      label: '方位波门',     unit: '°',     type: 'number', min: 0.1, max: 10,   step: 0.1,  default: 2    },
+      ]
+    },
+    {
+      group: '航迹维持',
+      params: [
+        { key: 'miss_max',     label: '最大漏检次数', unit: '次',    type: 'number', min: 1,   max: 10,   step: 1,    default: 4    },
+        { key: 'track_filter', label: '滤波方式',                    type: 'select', options: ['α-β滤波','卡尔曼','扩展卡尔曼','无迹卡尔曼'], default: '卡尔曼' },
+        { key: 'q_factor',     label: '过程噪声Q',                   type: 'number', min: 0.001,max: 10,  step: 0.001,default: 0.1  },
+        { key: 'r_factor',     label: '观测噪声R',                   type: 'number', min: 0.001,max: 10,  step: 0.001,default: 1.0  },
+      ]
+    },
+    {
+      group: '航迹终结',
+      params: [
+        { key: 'del_miss',     label: '删除漏检帧数', unit: '帧',    type: 'number', min: 1,   max: 20,   step: 1,    default: 8    },
+        { key: 'del_out_range',label: '超范围删除',                   type: 'toggle',                                  default: true  },
+        { key: 'del_low_snr',  label: '低SNR删除门限',unit: 'dB',   type: 'range',  min: 5,   max: 30,   step: 1,    default: 10   },
+      ]
+    },
+  ],
+  cfar: [
+    {
+      group: 'CFAR基础设置',
+      params: [
+        { key: 'cfar_type',    label: 'CFAR类型',                    type: 'select', options: ['CA-CFAR','GO-CFAR','SO-CFAR','OS-CFAR','CASH-CFAR'], default: 'CA-CFAR' },
+        { key: 'pfa',          label: '虚警概率',                    type: 'select', options: ['1e-3','1e-4','1e-5','1e-6','1e-7'], default: '1e-6' },
+        { key: 'ref_win',      label: '参考窗长度',  unit: '单元',   type: 'number', min: 8,   max: 128,  step: 4,    default: 32   },
+        { key: 'guard_win',    label: '保护单元',    unit: '单元',   type: 'number', min: 1,   max: 16,   step: 1,    default: 4    },
+      ]
+    },
+    {
+      group: 'OS-CFAR参数',
+      params: [
+        { key: 'os_rank',      label: '排序秩 k',                    type: 'number', min: 1,   max: 64,   step: 1,    default: 24   },
+        { key: 'os_enable',    label: 'OS模式使能',                   type: 'toggle',                                  default: false },
+      ]
+    },
+    {
+      group: '二维CFAR',
+      params: [
+        { key: '2d_cfar',      label: '二维CFAR使能',                 type: 'toggle',                                  default: false },
+        { key: '2d_rng_win',   label: '距离窗',      unit: '单元',   type: 'number', min: 4,   max: 64,   step: 2,    default: 16   },
+        { key: '2d_dop_win',   label: '多普勒窗',    unit: '单元',   type: 'number', min: 4,   max: 64,   step: 2,    default: 16   },
+        { key: 'thresh_scale', label: '门限比例因子',                 type: 'range',  min: 0.5, max: 3.0,  step: 0.1,  default: 1.0  },
+      ]
+    },
+  ],
+  waveform: [
+    {
+      group: '波形设计',
+      params: [
+        { key: 'waveform_type',label: '波形类型',                    type: 'select', options: ['LFM','NLFM','相编码','频编码','OFDM'], default: 'LFM' },
+        { key: 'bandwidth',    label: '信号带宽',    unit: 'MHz',    type: 'number', min: 1,   max: 500,  step: 1,    default: 100  },
+        { key: 'tbp',          label: '时宽带宽积',                  type: 'number', min: 10,  max: 10000,step: 10,   default: 1000 },
+        { key: 'code_len',     label: '编码长度',    unit: 'bit',    type: 'select', options: ['13','25','64','128','Golay'], default: '13' },
+      ]
+    },
+    {
+      group: '脉压参数',
+      params: [
+        { key: 'window_type',  label: '加权窗函数',                  type: 'select', options: ['矩形窗','汉明窗','汉宁窗','布莱克曼窗','泰勒窗'], default: '泰勒窗' },
+        { key: 'sll',          label: '旁瓣电平',    unit: 'dB',     type: 'range',  min: -60, max: -13,  step: 1,    default: -40  },
+        { key: 'compress_en',  label: '脉压使能',                     type: 'toggle',                                  default: true  },
+        { key: 'mismatched',   label: '失配滤波',                     type: 'toggle',                                  default: false },
+      ]
+    },
+  ],
+};
+
+const TAB_LABELS = { radar:'雷控参数', signal:'信处参数', track:'航迹参数', cfar:'CFAR参数', waveform:'波形参数' };
+
+/* ==================== 状态管理 ==================== */
+let currentBoardId = null;
+let currentTab = 'radar';
+// boardData[boardId][tabKey][paramKey] = value
+const boardData = {};
+
+function initBoardData() {
+  BOARD_CONFIG.forEach(b => {
+    boardData[b.id] = {};
+    Object.keys(PARAM_SCHEMA).forEach(tab => {
+      boardData[b.id][tab] = {};
+      PARAM_SCHEMA[tab].forEach(g => {
+        g.params.forEach(p => {
+          // Tiny variation per board to make compare interesting
+          let val = p.default;
+          if (typeof val === 'number' && b.id !== 'A1') {
+            val = +(val * (1 + (Math.random() - 0.5) * 0.06)).toFixed(3);
+          }
+          boardData[b.id][tab][p.key] = val;
+        });
+      });
+    });
+  });
+}
+
+const modifiedSet = {}; // modifiedSet[boardId] = Set of 'tab:key'
+function markModified(boardId, tab, key) {
+  if (!modifiedSet[boardId]) modifiedSet[boardId] = new Set();
+  modifiedSet[boardId].add(`${tab}:${key}`);
+  refreshSidebarBadges();
+  updateStatusBar();
+}
+function isModified(boardId, tab, key) {
+  return modifiedSet[boardId]?.has(`${tab}:${key}`) ?? false;
+}
+function clearModified(boardId) {
+  if (modifiedSet[boardId]) modifiedSet[boardId].clear();
+  refreshSidebarBadges();
+  updateStatusBar();
+}
+
+/* ==================== 侧边栏 ==================== */
+function buildSidebar() {
+  const list = document.getElementById('sidebarList');
+  list.innerHTML = '';
+  BOARD_CONFIG.forEach(b => {
+    const el = document.createElement('div');
+    el.className = 'array-item';
+    el.id = 'sb-' + b.id;
+    el.onclick = () => selectBoard(b.id);
+    el.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.6">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.label}</span>
+      <span class="array-badge" id="badge-${b.id}">0</span>`;
+    list.appendChild(el);
+  });
+}
+
+function refreshSidebarBadges() {
+  BOARD_CONFIG.forEach(b => {
+    const cnt = modifiedSet[b.id]?.size ?? 0;
+    const badge = document.getElementById('badge-' + b.id);
+    const item  = document.getElementById('sb-' + b.id);
+    if (badge) badge.textContent = cnt > 0 ? cnt : '✓';
+    if (item) {
+      item.classList.toggle('modified', cnt > 0);
+    }
+  });
+}
+
+function selectBoard(id) {
+  currentBoardId = id;
+  document.querySelectorAll('.array-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('sb-' + id);
+  if (el) el.classList.add('active');
+
+  const board = BOARD_CONFIG.find(b => b.id === id);
+  document.getElementById('boardTitle').textContent = board.label;
+  document.getElementById('boardSubtitle').textContent = `IP: ${board.ip} | 阵面: ${board.face}`;
+  document.getElementById('sb-board').textContent = board.label;
+
+  renderParams();
+}
+
+/* ==================== 参数面板 ==================== */
+function switchTab(el, tab) {
+  document.querySelectorAll('.param-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentTab = tab;
+  renderParams();
+}
+
+function renderParams() {
+  const panel = document.getElementById('paramPanel');
+  if (!currentBoardId) return;
+  panel.innerHTML = '';
+
+  const schema = PARAM_SCHEMA[currentTab] || [];
+  schema.forEach(group => {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'param-group';
+    const headerEl = document.createElement('div');
+    headerEl.className = 'group-header';
+    headerEl.innerHTML = `<span>${group.group}</span><span class="collapse-icon">▼</span>`;
+    headerEl.onclick = () => {
+      const body = groupEl.querySelector('.group-body');
+      const icon = headerEl.querySelector('.collapse-icon');
+      const hidden = body.classList.toggle('hidden');
+      headerEl.classList.toggle('collapsed', hidden);
+    };
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'group-body';
+
+    group.params.forEach(p => {
+      bodyEl.appendChild(buildParamRow(p));
+    });
+
+    groupEl.appendChild(headerEl);
+    groupEl.appendChild(bodyEl);
+    panel.appendChild(groupEl);
+  });
+
+  updateTabBadges();
+  updateStatusBar();
+}
+
+function buildParamRow(p) {
+  const val = boardData[currentBoardId][currentTab][p.key];
+  const modified = isModified(currentBoardId, currentTab, p.key);
+
+  if (p.type === 'toggle') {
+    const row = document.createElement('div');
+    row.className = 'param-row toggle-row';
+    row.onclick = () => {
+      const cur = boardData[currentBoardId][currentTab][p.key];
+      boardData[currentBoardId][currentTab][p.key] = !cur;
+      markModified(currentBoardId, currentTab, p.key);
+      renderParams();
+    };
+    row.innerHTML = `
+      <div class="toggle ${val ? 'on' : ''}"></div>
+      <span class="param-label">${p.label}</span>
+      <span style="font-size:11px;color:${val ? 'var(--accent-green)' : 'var(--text-muted)'};">${val ? '启用' : '禁用'}</span>
+    `;
+    return row;
+  }
+
+  if (p.type === 'range') {
+    const row = document.createElement('div');
+    row.className = 'param-row range-row';
+    row.innerHTML = `
+      <div class="range-header">
+        <span class="param-label">${p.label}${p.unit ? `<span class="unit">(${p.unit})</span>` : ''}</span>
+        <span class="range-val" id="rv-${p.key}">${val}</span>
+      </div>
+      <input type="range" class="param-input ${modified ? 'modified' : ''}" min="${p.min}" max="${p.max}" step="${p.step}" value="${val}"
+        data-key="${p.key}"
+        oninput="updateRange(this,'${p.key}')"
+        onchange="markModified('${currentBoardId}','${currentTab}','${p.key}')"
+      />
+    `;
+    return row;
+  }
+
+  const row = document.createElement('div');
+  row.className = 'param-row';
+
+  const label = document.createElement('span');
+  label.className = 'param-label';
+  label.innerHTML = `${p.label}${p.unit ? `<span class="unit">(${p.unit})</span>` : ''}`;
+
+  let input;
+  if (p.type === 'select') {
+    input = document.createElement('select');
+    input.className = `param-input${modified ? ' modified' : ''}`;
+    (p.options || []).forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt; o.textContent = opt;
+      if (String(val) === String(opt)) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'number';
+    input.className = `param-input${modified ? ' modified' : ''}`;
+    input.min = p.min; input.max = p.max; input.step = p.step;
+    input.value = val;
+  }
+
+  input.onchange = () => {
+    boardData[currentBoardId][currentTab][p.key] = p.type === 'number' ? +input.value : input.value;
+    markModified(currentBoardId, currentTab, p.key);
+    input.classList.add('modified');
+  };
+
+  row.appendChild(label);
+  row.appendChild(input);
+  return row;
+}
+
+function updateRange(el, key) {
+  boardData[currentBoardId][currentTab][key] = +el.value;
+  const rv = document.getElementById('rv-' + key);
+  if (rv) rv.textContent = el.value;
+}
+
+function updateTabBadges() {
+  if (!currentBoardId) return;
+  Object.keys(PARAM_SCHEMA).forEach(tab => {
+    let cnt = 0;
+    PARAM_SCHEMA[tab].forEach(g => cnt += g.params.length);
+    const el = document.getElementById('tb-' + tab);
+    if (el) el.textContent = cnt;
+  });
+}
+
+/* ==================== Status Bar ==================== */
+function updateStatusBar() {
+  const modCnt = (currentBoardId && modifiedSet[currentBoardId]) ? modifiedSet[currentBoardId].size : 0;
+  document.getElementById('sb-modified').textContent = modCnt > 0 ? `已修改 ${modCnt} 项` : '无未保存修改';
+  document.getElementById('sb-tab').textContent = TAB_LABELS[currentTab] || '—';
+  document.getElementById('sb-time').textContent = new Date().toLocaleTimeString('zh-CN');
+}
+setInterval(updateStatusBar, 1000);
+
+/* ==================== Board Actions ==================== */
+function sendBoard() {
+  if (!currentBoardId) return showToast('请先选择板卡','warning');
+  showToast(`参数已下发至 ${BOARD_CONFIG.find(b=>b.id===currentBoardId).label}`, 'success');
+  clearModified(currentBoardId);
+  renderParams();
+}
+
+function sendAll() {
+  BOARD_CONFIG.forEach(b => clearModified(b.id));
+  renderParams();
+  showToast('所有阵面参数已全部下发', 'success');
+}
+
+function loadBoardParams() {
+  if (!currentBoardId) return showToast('请先选择板卡','warning');
+  showToast(`已读取 ${BOARD_CONFIG.find(b=>b.id===currentBoardId).label} 当前参数`, 'success');
+}
+
+function resetBoard() {
+  if (!currentBoardId) return showToast('请先选择板卡','warning');
+  Object.keys(PARAM_SCHEMA).forEach(tab => {
+    PARAM_SCHEMA[tab].forEach(g => g.params.forEach(p => {
+      boardData[currentBoardId][tab][p.key] = p.default;
+    }));
+  });
+  clearModified(currentBoardId);
+  renderParams();
+  showToast('已恢复默认值', 'warning');
+}
+
+/* ==================== Compare ==================== */
+function openCompare() {
+  document.getElementById('compareOverlay').classList.add('show');
+  renderCompare();
+}
+function closeCompare() {
+  document.getElementById('compareOverlay').classList.remove('show');
+}
+
+function renderCompare() {
+  const type = document.getElementById('compareType').value;
+  const diffOnly = document.getElementById('diffOnly').checked;
+  const schema = PARAM_SCHEMA[type] || [];
+  const allParams = schema.flatMap(g => g.params);
+
+  const thead = `<thead><tr>
+    <th>参数名</th>
+    ${BOARD_CONFIG.map(b=>`<th>${b.label.replace(' - ','<br/><small style="font-weight:400;color:var(--text-muted)">')}</small></th>`).join('')}
+  </tr></thead>`;
+
+  const rows = allParams.map(p => {
+    const vals = BOARD_CONFIG.map(b => String(boardData[b.id][type][p.key]));
+    const hasDiff = new Set(vals).size > 1;
+    if (diffOnly && !hasDiff) return '';
+    const cells = vals.map(v =>
+      `<td class="${hasDiff ? 'diff-cell' : 'same-cell'}">${v}</td>`
+    ).join('');
+    return `<tr><td style="color:var(--text-secondary);white-space:nowrap">${p.label}${p.unit ? ` <small style="color:var(--text-muted)">(${p.unit})</small>` : ''}</td>${cells}</tr>`;
+  }).filter(Boolean).join('');
+
+  document.getElementById('compareTable').innerHTML = thead + `<tbody>${rows || '<tr><td colspan="99" style="text-align:center;color:var(--text-muted);padding:20px">所有参数值相同</td></tr>'}</tbody>`;
+}
+
+/* ==================== Config Groups ==================== */
+const savedConfigs = [
+  { name: '默认初始配置', time: '2026-04-01 08:00', data: null },
+  { name: '任务A搜索模式', time: '2026-04-02 14:30', data: null },
+];
+
+function openConfig() {
+  document.getElementById('configOverlay').classList.add('show');
+  renderConfigList();
+}
+function closeConfig() {
+  document.getElementById('configOverlay').classList.remove('show');
+}
+
+function renderConfigList() {
+  const list = document.getElementById('configList');
+  list.innerHTML = '';
+  savedConfigs.forEach((cfg, i) => {
+    const el = document.createElement('div');
+    el.className = 'config-item';
+    el.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-blue);flex-shrink:0">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+      </svg>
+      <div>
+        <div class="config-item-name">${cfg.name}</div>
+        <div class="config-item-meta">保存时间: ${cfg.time}</div>
+      </div>
+      <div class="config-item-actions">
+        <button class="btn btn-secondary" style="padding:3px 10px;font-size:12px" onclick="loadConfig(${i})">加载</button>
+        <button class="btn btn-danger" style="padding:3px 10px;font-size:12px" onclick="deleteConfig(${i})">删除</button>
+      </div>`;
+    list.appendChild(el);
+  });
+}
+
+function saveConfig() {
+  const name = document.getElementById('saveNameInput').value.trim();
+  if (!name) return showToast('请输入配置组名称', 'warning');
+  savedConfigs.push({ name, time: new Date().toLocaleString('zh-CN'), data: JSON.parse(JSON.stringify(boardData)) });
+  document.getElementById('saveNameInput').value = '';
+  renderConfigList();
+  showToast(`配置组「${name}」已保存`, 'success');
+}
+
+function loadConfig(i) {
+  const cfg = savedConfigs[i];
+  if (cfg.data) {
+    Object.assign(boardData, JSON.parse(JSON.stringify(cfg.data)));
+    BOARD_CONFIG.forEach(b => clearModified(b.id));
+  }
+  if (currentBoardId) renderParams();
+  closeConfig();
+  showToast(`已加载配置组「${cfg.name}」`, 'success');
+}
+
+function deleteConfig(i) {
+  const name = savedConfigs[i].name;
+  savedConfigs.splice(i, 1);
+  renderConfigList();
+  showToast(`已删除配置组「${name}」`, 'warning');
+}
+
+/* ==================== Toast ==================== */
+function showToast(msg, type='success') {
+  const icons = { success:'✓', warning:'⚠', error:'✕' };
+  const tc = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]||'•'}</span><span>${msg}</span>`;
+  tc.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+/* ==================== Modal Backdrop ==================== */
+function closeIfBackdrop(e, id) {
+  if (e.target.id === id) document.getElementById(id).classList.remove('show');
+}
+
+/* ==================== Init ==================== */
+initBoardData();
+buildSidebar();
+refreshSidebarBadges();
+updateStatusBar();
+
+// Auto-select first board
+selectBoard(BOARD_CONFIG[0].id);
+</script>
+</body>
+</html>

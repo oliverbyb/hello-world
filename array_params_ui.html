@@ -5,837 +5,520 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>阵面参数配置</title>
 <style>
-/* ============================================================
-   CSS CUSTOM PROPERTIES
-   ============================================================ */
+/* ================================================================
+   TOKEN
+   ================================================================ */
 :root {
-  --bg-base:        #10141a;
-  --bg-panel:       #141920;
-  --bg-card:        #181e27;
-  --bg-hover:       #1e2530;
-  --bg-active:      #1a2640;
-  --bg-header:      #0e1218;
+  --c-bg0:      #0c1017;   /* deepest bg */
+  --c-bg1:      #111720;   /* panel bg */
+  --c-bg2:      #161d28;   /* card bg */
+  --c-bg3:      #1b2333;   /* hover */
+  --c-line:     #222c3a;   /* border */
+  --c-line2:    #2a3548;   /* lighter border */
 
-  --border:         #252d3a;
-  --border-light:   #2e3847;
+  --c-t1:       #cdd8e8;   /* primary text */
+  --c-t2:       #7090b0;   /* secondary text */
+  --c-t3:       #3d5068;   /* muted text */
 
-  --text-hi:        #d4dde8;
-  --text-mid:       #7a8fa8;
-  --text-lo:        #445060;
+  --c-acc:      #2878d0;   /* accent blue */
+  --c-acc-bg:   rgba(40,120,208,0.14);
+  --c-acc-bd:   rgba(40,120,208,0.45);
 
-  --accent:         #2d7dd2;
-  --accent-dim:     rgba(45,125,210,0.18);
-  --accent-glow:    rgba(45,125,210,0.35);
+  --c-ok:       #279a65;
+  --c-ok-bg:    rgba(39,154,101,0.12);
+  --c-ok-bd:    rgba(39,154,101,0.4);
 
-  --green:          #28a868;
-  --green-dim:      rgba(40,168,104,0.15);
-  --red:            #c94040;
-  --amber:          #c07a20;
+  --c-warn:     #b87020;
+  --c-err:      #c03838;
 
-  --tab-h:          38px;
-  --sidebar-w:      200px;
-  --header-h:       46px;
-  --footer-h:       50px;
+  --sidebar-w:  196px;
+  --topbar-h:   44px;
+  --arrtab-h:   40px;
+  --footer-h:   48px;
 }
 
-/* ============================================================
-   RESET & BASE
-   ============================================================ */
+/* ================================================================
+   RESET
+   ================================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 body {
   font-family: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', system-ui, sans-serif;
   font-size: 12px;
-  background: var(--bg-base);
-  color: var(--text-hi);
+  background: var(--c-bg0);
+  color: var(--c-t1);
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
-
-/* ============================================================
-   SCROLLBAR
-   ============================================================ */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3a4a5e; }
+::-webkit-scrollbar-thumb { background: var(--c-line2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3d5068; }
 
-/* ============================================================
-   TOPBAR
-   ============================================================ */
+/* ================================================================
+   TOP BAR
+   ================================================================ */
 .topbar {
-  height: var(--header-h);
-  background: var(--bg-header);
-  border-bottom: 1px solid var(--border);
+  height: var(--topbar-h);
+  background: var(--c-bg0);
+  border-bottom: 1px solid var(--c-line);
   display: flex;
   align-items: center;
-  padding: 0 12px 0 0;
   gap: 0;
   flex-shrink: 0;
-  z-index: 20;
+  z-index: 30;
 }
 
 .topbar-brand {
-  height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  gap: 9px;
-  border-right: 1px solid var(--border);
-  margin-right: 12px;
+  gap: 8px;
+  height: 100%;
+  padding: 0 14px;
+  border-right: 1px solid var(--c-line);
   flex-shrink: 0;
 }
+.brand-svg { width: 20px; height: 20px; }
+.brand-name { font-size: 13px; font-weight: 600; color: var(--c-t1); letter-spacing: 0.3px; white-space: nowrap; }
 
-.brand-icon {
-  width: 22px; height: 22px;
-  display: flex; align-items: center; justify-content: center;
+.topbar-mid { flex: 1; display: flex; align-items: center; padding: 0 12px; gap: 6px; }
+
+.status-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--c-ok);
+  padding: 2px 8px;
+  background: var(--c-ok-bg);
+  border: 1px solid var(--c-ok-bd);
+  border-radius: 2px;
 }
-
-.brand-icon svg { width: 20px; height: 20px; }
-
-.brand-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-hi);
-  letter-spacing: 0.4px;
-  white-space: nowrap;
-}
-
-.topbar-label {
-  font-size: 11px;
-  color: var(--text-mid);
-  margin-right: 6px;
-  white-space: nowrap;
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  padding-right: 4px;
-}
-
-.status-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--green);
-  padding: 3px 9px;
-  background: var(--green-dim);
-  border: 1px solid rgba(40,168,104,0.3);
-  border-radius: 3px;
-  margin-right: 8px;
-}
-
-.status-dot::before {
-  content: '';
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 5px var(--green);
+.status-pill::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--c-ok); box-shadow: 0 0 4px var(--c-ok);
   animation: blink 2.5s ease-in-out infinite;
 }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+.topbar-right {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 10px; flex-shrink: 0;
+  border-left: 1px solid var(--c-line);
 }
 
-/* ============================================================
+/* ================================================================
    BUTTONS
-   ============================================================ */
+   ================================================================ */
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: 3px;
-  border: 1px solid var(--border-light);
-  cursor: pointer;
-  font-size: 12px;
-  font-family: inherit;
-  font-weight: 400;
-  color: var(--text-mid);
-  background: var(--bg-card);
-  transition: all 0.12s;
-  white-space: nowrap;
-  outline: none;
-  letter-spacing: 0.2px;
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 28px; padding: 0 11px;
+  border-radius: 3px; border: 1px solid var(--c-line2);
+  cursor: pointer; font-size: 12px; font-family: inherit;
+  color: var(--c-t2); background: var(--c-bg2);
+  transition: all .12s; outline: none; white-space: nowrap;
 }
-.btn:hover { border-color: #3a4a60; color: var(--text-hi); background: var(--bg-hover); }
+.btn:hover { border-color: #3d5580; color: var(--c-t1); background: var(--c-bg3); }
+.btn-acc  { background: var(--c-acc-bg); border-color: var(--c-acc); color: var(--c-acc); }
+.btn-acc:hover { background: rgba(40,120,208,.24); }
+.btn-ok   { background: var(--c-ok-bg); border-color: var(--c-ok); color: var(--c-ok); }
+.btn-ok:hover { background: rgba(39,154,101,.22); }
+.btn-fill { background: var(--c-acc); border-color: #1d60b8; color: #fff; font-weight: 500; }
+.btn-fill:hover { background: #2068c0; }
+.sep-v { width: 1px; height: 18px; background: var(--c-line); margin: 0 2px; }
 
-.btn-accent {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 500;
-}
-.btn-accent:hover { background: rgba(45,125,210,0.28); }
-
-.btn-green {
-  background: var(--green-dim);
-  border-color: var(--green);
-  color: var(--green);
-}
-.btn-green:hover { background: rgba(40,168,104,0.22); }
-
-.btn-primary {
-  background: var(--accent);
-  border-color: #1e62b0;
-  color: #fff;
-  font-weight: 500;
-}
-.btn-primary:hover { background: #2470c0; box-shadow: 0 0 0 2px rgba(45,125,210,0.25); }
-
-.vdivider {
-  width: 1px; height: 20px;
-  background: var(--border);
-  margin: 0 4px;
-}
-
-/* ============================================================
-   MAIN LAYOUT
-   ============================================================ */
-.main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* ============================================================
-   SIDEBAR — industrial tree style
-   ============================================================ */
-.sidebar {
-  width: var(--sidebar-w);
-  background: var(--bg-panel);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.sidebar-hd {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 10px 0 12px;
-  height: 34px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.sidebar-hd-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--text-lo);
-}
-
-.sidebar-hd-btn {
-  width: 20px; height: 20px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 3px;
-  cursor: pointer;
-  color: var(--text-lo);
-  font-size: 14px;
-  line-height: 1;
-  transition: all 0.1s;
-  background: none;
-  border: none;
-}
-.sidebar-hd-btn:hover { color: var(--accent); background: var(--accent-dim); }
-
-.sidebar-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0;
-}
-
-/* Tree node — array group */
-.tree-node { }
-
-.tree-node-hd {
-  display: flex;
-  align-items: center;
-  height: 30px;
-  padding: 0 8px 0 6px;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.1s;
-  gap: 0;
-  position: relative;
-}
-.tree-node-hd:hover { background: var(--bg-hover); }
-.tree-node-hd.selected { background: var(--bg-active); }
-
-.tree-caret {
-  width: 18px; height: 18px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  color: var(--text-lo);
-  font-style: normal;
-  transition: transform 0.15s;
-  font-size: 9px;
-}
-.tree-caret.open { transform: rotate(90deg); color: var(--text-mid); }
-
-/* Array number badge — industrial style */
-.array-num {
-  width: 18px; height: 18px;
-  border-radius: 2px;
-  background: var(--bg-active);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  font-size: 10px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-right: 6px;
-  font-family: 'Consolas', 'Courier New', monospace;
-}
-
-.tree-node-hd.selected .array-num,
-.tree-node-hd:hover .array-num {
-  background: rgba(45,125,210,0.25);
-}
-
-.tree-node-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-hi);
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.tree-node-hd:not(.selected):not(:hover) .tree-node-label {
-  color: var(--text-mid);
-}
-
-/* Online indicator */
-.tree-online {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 4px var(--green);
-  flex-shrink: 0;
-  margin-left: 4px;
-}
-
-/* Tree children */
-.tree-children {
-  display: none;
-  padding: 2px 0 2px 0;
-  position: relative;
-}
-.tree-children.open { display: block; }
-
-/* Vertical connecting line */
-.tree-children::before {
-  content: '';
-  position: absolute;
-  left: 22px;
-  top: 0; bottom: 0;
-  width: 1px;
-  background: var(--border-light);
-}
-
-/* Leaf nav item */
-.tree-leaf {
-  display: flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 8px 0 34px;
-  cursor: pointer;
-  color: var(--text-mid);
-  font-size: 12px;
-  transition: all 0.1s;
-  position: relative;
-  gap: 7px;
-}
-.tree-leaf::before {
-  content: '';
-  position: absolute;
-  left: 22px;
-  top: 50%;
-  width: 8px;
-  height: 1px;
-  background: var(--border-light);
-}
-.tree-leaf:hover { color: var(--text-hi); background: var(--bg-hover); }
-.tree-leaf.active {
-  color: var(--accent);
-  background: var(--accent-dim);
-  font-weight: 500;
-}
-.tree-leaf.active::after {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 2px;
-  background: var(--accent);
-  border-radius: 0 2px 2px 0;
-}
-
-/* Leaf icon — pure CSS, no emoji */
-.leaf-icon {
-  width: 14px; height: 14px;
-  flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0.65;
-}
-
-.sidebar-footer {
-  border-top: 1px solid var(--border);
-  padding: 8px;
-  flex-shrink: 0;
-}
-
-.add-array-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 28px;
-  border: 1px dashed var(--border-light);
-  border-radius: 3px;
-  cursor: pointer;
-  color: var(--text-lo);
-  font-size: 11px;
-  transition: all 0.12s;
-  background: none;
-}
-.add-array-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-
-/* ============================================================
-   CONTENT AREA
-   ============================================================ */
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg-base);
-}
-
-/* ============================================================
-   TAB BAR — horizontal, industrial style
-   ============================================================ */
-.tabbar-wrap {
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.tabbar-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  height: 34px;
-  border-bottom: 1px solid var(--border);
-}
-
-.tabbar-path {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-}
-.tabbar-path-seg { color: var(--text-lo); }
-.tabbar-path-sep { color: var(--text-lo); font-size: 10px; }
-.tabbar-path-cur { color: var(--text-mid); font-weight: 600; }
-
-.tabbar-type {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
-.tabbar-type label { color: var(--text-lo); font-size: 11px; }
-
-.tabbar {
+/* ================================================================
+   ARRAY TABS  (below topbar)
+   ================================================================ */
+.arr-tabbar {
+  height: var(--arrtab-h);
+  background: var(--c-bg1);
+  border-bottom: 1px solid var(--c-line);
   display: flex;
   align-items: flex-end;
-  padding: 0 10px;
-  height: var(--tab-h);
-  overflow-x: auto;
+  padding: 0 12px;
   gap: 2px;
+  flex-shrink: 0;
+  z-index: 20;
+  overflow-x: auto;
 }
-.tabbar::-webkit-scrollbar { height: 0; }
+.arr-tabbar::-webkit-scrollbar { height: 0; }
 
-.tab {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  height: 30px;
-  padding: 0 14px;
-  cursor: pointer;
-  color: var(--text-lo);
-  font-size: 12px;
-  white-space: nowrap;
+.arr-tab {
+  display: flex; align-items: center; gap: 7px;
+  height: 32px; padding: 0 16px;
   border-radius: 3px 3px 0 0;
   border: 1px solid transparent;
   border-bottom: none;
-  transition: all 0.1s;
-  position: relative;
-  top: 1px;
-  user-select: none;
+  cursor: pointer; font-size: 12px;
+  color: var(--c-t3);
   background: transparent;
+  transition: all .12s;
+  user-select: none;
+  white-space: nowrap;
+  position: relative; top: 1px;
 }
-.tab:hover { color: var(--text-mid); background: var(--bg-hover); border-color: var(--border); }
+.arr-tab:hover { color: var(--c-t2); background: var(--c-bg3); border-color: var(--c-line); }
+.arr-tab.active {
+  color: var(--c-t1); font-weight: 500;
+  background: var(--c-bg0);
+  border-color: var(--c-line);
+  border-bottom-color: var(--c-bg0);
+}
+.arr-tab.active::after {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: var(--c-acc); border-radius: 2px 2px 0 0;
+}
+.arr-tab-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--c-t3); flex-shrink: 0;
+}
+.arr-tab.online .arr-tab-dot { background: var(--c-ok); box-shadow: 0 0 4px var(--c-ok); }
+.arr-tab.active .arr-tab-dot { background: var(--c-acc); box-shadow: 0 0 4px var(--c-acc); }
+.arr-tab-add {
+  display: flex; align-items: center; gap: 4px;
+  height: 24px; padding: 0 10px;
+  color: var(--c-t3); font-size: 11px;
+  cursor: pointer; border-radius: 3px;
+  border: 1px dashed var(--c-line);
+  margin-left: 4px; align-self: center; top: 0 !important;
+  position: relative !important;
+  transition: all .12s;
+}
+.arr-tab-add:hover { color: var(--c-acc); border-color: var(--c-acc); background: var(--c-acc-bg); }
 
-.tab.active {
-  color: var(--text-hi);
-  background: var(--bg-base);
-  border-color: var(--border);
-  border-bottom-color: var(--bg-base);
-  font-weight: 500;
+/* ================================================================
+   MAIN BODY
+   ================================================================ */
+.body-wrap {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
 
-/* Active indicator line above tab */
-.tab.active::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: 0; right: 0;
-  height: 2px;
-  background: var(--accent);
-  border-radius: 2px 2px 0 0;
+/* ================================================================
+   SIDEBAR  — param category tree
+   ================================================================ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--c-bg1);
+  border-right: 1px solid var(--c-line);
+  display: flex; flex-direction: column;
+  overflow: hidden; flex-shrink: 0;
 }
 
-.tab-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.sb-hd {
+  height: 32px;
+  display: flex; align-items: center;
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--c-line);
+  flex-shrink: 0;
+}
+.sb-hd-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--c-t3); flex: 1;
+}
+
+.sb-body { flex: 1; overflow-y: auto; padding: 6px 0; }
+
+/* Category group */
+.cat-group { }
+
+.cat-hd {
+  display: flex; align-items: center;
+  height: 32px; padding: 0 8px 0 10px;
+  cursor: pointer; user-select: none;
+  transition: background .1s; gap: 0;
+}
+.cat-hd:hover { background: var(--c-bg3); }
+
+.cat-caret {
   width: 16px; height: 16px;
-  border-radius: 2px;
-  font-size: 9px;
-  font-weight: 700;
-  background: var(--border);
-  color: var(--text-lo);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--c-t3); font-size: 8px;
+  transition: transform .15s; flex-shrink: 0;
 }
-.tab.active .tab-num {
-  background: var(--accent-dim);
-  color: var(--accent);
-}
+.cat-caret.open { transform: rotate(90deg); color: var(--c-t2); }
 
-/* ============================================================
-   PANEL AREA
-   ============================================================ */
-.panel-wrap {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+/* Category label chip */
+.cat-chip {
+  display: flex; align-items: center; gap: 6px;
+  flex: 1; min-width: 0;
 }
-
-.panel-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 20px;
-}
-
-/* ============================================================
-   SECTION GROUP  (replaces section-card — inline block style)
-   ============================================================ */
-.sg {
-  margin-bottom: 14px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.sg-hd {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  height: 30px;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
-}
-
-.sg-hd-line {
-  width: 2px; height: 12px;
-  background: var(--accent);
-  border-radius: 1px;
+.cat-chip-icon {
+  width: 20px; height: 20px;
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
+.cat-chip-icon.radar  { background: rgba(40,120,208,.15); border: 1px solid rgba(40,120,208,.3); }
+.cat-chip-icon.signal { background: rgba(39,154,101,.12); border: 1px solid rgba(39,154,101,.3); }
 
-.sg-hd-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-mid);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-}
-
-.sg-body {
-  padding: 14px 16px;
-  background: var(--bg-card);
-}
-
-/* ============================================================
-   PARAMETER GRID
-   ============================================================ */
-.pg {
-  display: grid;
-  gap: 9px 20px;
-}
-.pg-1 { grid-template-columns: 1fr; }
-.pg-2 { grid-template-columns: repeat(2, 1fr); }
-.pg-3 { grid-template-columns: repeat(3, 1fr); }
-.pg-4 { grid-template-columns: repeat(4, 1fr); }
-
-.pr {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 28px;
-}
-
-.pl {
-  color: var(--text-mid);
-  font-size: 12px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 128px;
-}
-.pl-sm  { min-width: 90px; }
-.pl-md  { min-width: 160px; }
-.pl-lg  { min-width: 200px; }
-
-.pu {
-  color: var(--text-lo);
-  font-size: 11px;
-  white-space: nowrap;
-  flex-shrink: 0;
+.cat-chip-label { font-size: 12px; font-weight: 600; color: var(--c-t1); white-space: nowrap; }
+.cat-chip-count {
+  margin-left: auto;
+  font-size: 10px; color: var(--c-t3);
+  background: var(--c-bg0); border: 1px solid var(--c-line);
+  border-radius: 2px; padding: 1px 5px;
   font-family: 'Consolas', monospace;
 }
 
-/* ============================================================
+/* Children */
+.cat-children { display: none; padding: 2px 0; position: relative; }
+.cat-children.open { display: block; }
+
+/* Vertical guide line */
+.cat-children::before {
+  content: ''; position: absolute;
+  left: 20px; top: 0; bottom: 0;
+  width: 1px; background: var(--c-line2);
+}
+
+/* Leaf item */
+.leaf {
+  display: flex; align-items: center; gap: 0;
+  height: 28px; padding: 0 8px 0 20px;
+  cursor: pointer; color: var(--c-t2);
+  font-size: 12px; transition: all .1s;
+  position: relative;
+}
+.leaf::before {
+  content: ''; position: absolute;
+  left: 20px; top: 50%; width: 10px; height: 1px;
+  background: var(--c-line2);
+}
+.leaf-inner { display: flex; align-items: center; gap: 6px; padding-left: 14px; width: 100%; }
+.leaf:hover { color: var(--c-t1); background: var(--c-bg3); }
+.leaf.active {
+  color: var(--c-acc); background: var(--c-acc-bg);
+  font-weight: 500;
+}
+.leaf.active::after {
+  content: ''; position: absolute;
+  left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--c-acc); border-radius: 0 2px 2px 0;
+}
+.leaf-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--c-line2); flex-shrink: 0;
+}
+.leaf.active .leaf-dot { background: var(--c-acc); }
+
+/* ================================================================
+   CONTENT
+   ================================================================ */
+.content {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--c-bg0);
+}
+
+/* Content subheader */
+.content-hd {
+  height: 34px;
+  display: flex; align-items: center;
+  padding: 0 16px; gap: 10px;
+  background: var(--c-bg1);
+  border-bottom: 1px solid var(--c-line);
+  flex-shrink: 0;
+}
+
+.breadcrumb {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; flex: 1;
+}
+.bc-seg { color: var(--c-t3); }
+.bc-sep { color: var(--c-t3); font-size: 9px; }
+.bc-cur { color: var(--c-t2); font-weight: 600; }
+
+.content-hd-extra {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+
+/* Scroll area */
+.panel-scroll {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+}
+
+/* ================================================================
+   SECTION GROUP
+   ================================================================ */
+.sg {
+  margin-bottom: 12px;
+  border: 1px solid var(--c-line);
+  border-radius: 3px; overflow: hidden;
+}
+.sg-hd {
+  display: flex; align-items: center; gap: 8px;
+  height: 28px; padding: 0 12px;
+  background: var(--c-bg1);
+  border-bottom: 1px solid var(--c-line);
+}
+.sg-bar { width: 2px; height: 11px; border-radius: 1px; background: var(--c-acc); flex-shrink: 0; }
+.sg-bar.ok { background: var(--c-ok); }
+.sg-title {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .7px;
+  color: var(--c-t2);
+}
+.sg-body { padding: 12px 14px; background: var(--c-bg2); }
+
+/* ================================================================
+   PARAM GRID
+   ================================================================ */
+.pg   { display: grid; gap: 8px 18px; }
+.pg-1 { grid-template-columns: 1fr; }
+.pg-2 { grid-template-columns: repeat(2,1fr); }
+.pg-3 { grid-template-columns: repeat(3,1fr); }
+
+.pr { display: flex; align-items: center; gap: 7px; min-height: 26px; }
+.pl { color: var(--c-t2); font-size: 12px; white-space: nowrap; flex-shrink: 0; min-width: 120px; }
+.pl-s  { min-width: 80px; }
+.pl-m  { min-width: 150px; }
+.pl-l  { min-width: 180px; }
+.pl-xl { min-width: 210px; }
+.pu { color: var(--c-t3); font-size: 11px; white-space: nowrap; flex-shrink: 0; font-family: 'Consolas',monospace; }
+.full-row { grid-column: 1 / -1; }
+
+.sep { height: 1px; background: var(--c-line); margin: 6px 0; grid-column: 1/-1; }
+
+/* ================================================================
    FORM CONTROLS
-   ============================================================ */
+   ================================================================ */
 .inp {
-  height: 26px;
-  padding: 0 8px;
-  background: var(--bg-base);
-  border: 1px solid var(--border-light);
+  height: 24px; padding: 0 7px;
+  background: var(--c-bg0);
+  border: 1px solid var(--c-line2);
   border-radius: 3px;
-  color: var(--text-hi);
-  font-size: 12px;
-  font-family: 'Consolas', 'Courier New', monospace;
-  outline: none;
-  transition: border-color 0.12s;
+  color: var(--c-t1);
+  font-size: 12px; font-family: 'Consolas','Courier New',monospace;
+  outline: none; transition: border-color .12s;
   min-width: 0;
 }
-.inp:hover { border-color: #3a4a5e; }
-.inp:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(45,125,210,0.15); }
-.inp[readonly] { color: var(--accent); background: var(--accent-dim); border-color: rgba(45,125,210,0.3); }
+.inp:hover { border-color: #3d5270; }
+.inp:focus { border-color: var(--c-acc); box-shadow: 0 0 0 2px rgba(40,120,208,.15); }
+.inp[readonly] { color: var(--c-acc); background: var(--c-acc-bg); border-color: rgba(40,120,208,.25); cursor: default; }
 
+.inp-60  { width: 60px;  flex-shrink: 0; }
 .inp-80  { width: 80px;  flex-shrink: 0; }
 .inp-100 { width: 100px; flex-shrink: 0; }
 .inp-120 { width: 120px; flex-shrink: 0; }
 .inp-150 { width: 150px; flex-shrink: 0; }
-.inp-full { flex: 1; }
+.inp-f   { flex: 1; }
 
 select.inp {
-  cursor: pointer;
-  padding-right: 22px;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%23445060' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 7px center;
+  cursor: pointer; padding-right: 20px; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath fill='%233d5068' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 6px center;
 }
 
-/* RADIO */
-.rg { display: flex; align-items: center; gap: 14px; }
+/* Radio */
+.rg { display: flex; align-items: center; gap: 12px; }
+.rl { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--c-t2); user-select: none; }
+.rl input[type=radio] { display: none; }
+.rc { width: 12px; height: 12px; border: 1px solid var(--c-line2); border-radius: 50%; position: relative; flex-shrink: 0; transition: border-color .12s; }
+.rl input[type=radio]:checked ~ .rc { border-color: var(--c-acc); }
+.rl input[type=radio]:checked ~ .rc::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:5px; height:5px; border-radius:50%; background:var(--c-acc); }
+.rl input[type=radio]:checked ~ span { color: var(--c-t1); }
 
-.rl {
-  display: flex; align-items: center; gap: 5px;
-  cursor: pointer; color: var(--text-mid); font-size: 12px;
-  user-select: none;
-}
-.rl input[type="radio"] { display: none; }
-.rc {
-  width: 13px; height: 13px;
-  border: 1px solid var(--border-light);
-  border-radius: 50%;
-  position: relative;
-  transition: border-color 0.12s;
-  flex-shrink: 0;
-}
-.rl input[type="radio"]:checked ~ .rc { border-color: var(--accent); }
-.rl input[type="radio"]:checked ~ .rc::after {
-  content: '';
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-.rl input[type="radio"]:checked ~ span { color: var(--text-hi); }
+/* Checkbox */
+.cl { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--c-t2); user-select: none; }
+.cl input[type=checkbox] { display: none; }
+.cc { width: 13px; height: 13px; border: 1px solid var(--c-line2); border-radius: 2px; position: relative; flex-shrink: 0; transition: all .12s; }
+.cl input[type=checkbox]:checked ~ .cc { background: var(--c-acc); border-color: var(--c-acc); }
+.cl input[type=checkbox]:checked ~ .cc::after { content:''; position:absolute; top:1px; left:3.5px; width:4px; height:7px; border:1.5px solid #fff; border-top:none; border-left:none; transform:rotate(45deg); }
+.cl input[type=checkbox]:checked ~ span { color: var(--c-t1); }
 
-/* CHECKBOX */
-.cl {
-  display: flex; align-items: center; gap: 6px;
-  cursor: pointer; color: var(--text-mid); font-size: 12px;
-  user-select: none;
-}
-.cl input[type="checkbox"] { display: none; }
-.cc {
-  width: 13px; height: 13px;
-  border: 1px solid var(--border-light);
-  border-radius: 2px;
-  position: relative;
-  transition: all 0.12s;
-  flex-shrink: 0;
-}
-.cl input[type="checkbox"]:checked ~ .cc {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.cl input[type="checkbox"]:checked ~ .cc::after {
-  content: '';
-  position: absolute; top: 1px; left: 3px;
-  width: 5px; height: 8px;
-  border: 2px solid #fff;
-  border-top: none; border-left: none;
-  transform: rotate(45deg);
-}
-.cl input[type="checkbox"]:checked ~ span { color: var(--text-hi); }
+/* ================================================================
+   PAIRS  (side-by-side section groups)
+   ================================================================ */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 
-/* ============================================================
-   HDivider inside sg-body
-   ============================================================ */
-.sep {
-  height: 1px;
-  background: var(--border);
-  margin: 10px 0;
-}
-
-/* ============================================================
-   SIDE-BY-SIDE PANELS
-   ============================================================ */
-.pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-/* ============================================================
+/* ================================================================
    FOOTER
-   ============================================================ */
+   ================================================================ */
 .footer {
   height: var(--footer-h);
-  background: var(--bg-panel);
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
+  background: var(--c-bg1);
+  border-top: 1px solid var(--c-line);
+  display: flex; align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 0 20px;
-  flex-shrink: 0;
+  gap: 8px; padding: 0 18px; flex-shrink: 0;
 }
 
-/* ============================================================
+/* ================================================================
    TOAST
-   ============================================================ */
+   ================================================================ */
 #toast {
-  position: fixed;
-  bottom: 20px; right: 20px;
-  padding: 9px 16px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  z-index: 9999;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: all 0.2s;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  position: fixed; bottom: 18px; right: 18px;
+  padding: 8px 14px; border-radius: 3px; font-size: 12px; font-weight: 500;
+  z-index: 9999; opacity: 0; transform: translateY(5px);
+  transition: all .18s; pointer-events: none;
+  display: flex; align-items: center; gap: 7px;
+  box-shadow: 0 4px 18px rgba(0,0,0,.55);
 }
 </style>
 </head>
 <body>
 
-<!-- ============================================================
-     TOPBAR
-     ============================================================ -->
+<!-- ================================================================
+     TOP BAR
+     ================================================================ -->
 <div class="topbar">
   <div class="topbar-brand">
-    <div class="brand-icon">
-      <svg viewBox="0 0 20 20" fill="none">
-        <polygon points="10,2 18,7 18,13 10,18 2,13 2,7" stroke="#2d7dd2" stroke-width="1.5" fill="rgba(45,125,210,0.1)"/>
-        <circle cx="10" cy="10" r="2.5" fill="#2d7dd2"/>
-        <line x1="10" y1="2" x2="10" y2="7" stroke="#2d7dd2" stroke-width="1"/>
-        <line x1="10" y1="13" x2="10" y2="18" stroke="#2d7dd2" stroke-width="1"/>
-        <line x1="2" y1="7" x2="7" y2="9.5" stroke="#2d7dd2" stroke-width="1"/>
-        <line x1="13" y1="10.5" x2="18" y2="13" stroke="#2d7dd2" stroke-width="1"/>
-        <line x1="2" y1="13" x2="7" y2="10.5" stroke="#2d7dd2" stroke-width="1"/>
-        <line x1="13" y1="9.5" x2="18" y2="7" stroke="#2d7dd2" stroke-width="1"/>
-      </svg>
-    </div>
+    <svg class="brand-svg" viewBox="0 0 22 22" fill="none">
+      <polygon points="11,2 20,7 20,15 11,20 2,15 2,7"
+               stroke="#2878d0" stroke-width="1.4" fill="rgba(40,120,208,.1)"/>
+      <circle cx="11" cy="11" r="2.8" fill="#2878d0" opacity=".9"/>
+      <line x1="11" y1="2"  x2="11" y2="8.2"  stroke="#2878d0" stroke-width="1"/>
+      <line x1="11" y1="13.8" x2="11" y2="20" stroke="#2878d0" stroke-width="1"/>
+      <line x1="2"  y1="7"  x2="8"  y2="10"   stroke="#2878d0" stroke-width="1"/>
+      <line x1="14" y1="12" x2="20" y2="15"   stroke="#2878d0" stroke-width="1"/>
+      <line x1="2"  y1="15" x2="8"  y2="12"   stroke="#2878d0" stroke-width="1"/>
+      <line x1="14" y1="10" x2="20" y2="7"    stroke="#2878d0" stroke-width="1"/>
+    </svg>
     <span class="brand-name">阵面参数配置</span>
   </div>
 
-  <span class="status-dot">在线</span>
+  <div class="topbar-mid">
+    <span class="status-pill">系统在线</span>
+  </div>
 
-  <span class="topbar-label">多阵面：</span>
-  <div class="topbar-actions">
-    <button class="btn" onclick="toast('已恢复默认参数','ok')">恢复默认</button>
+  <div class="topbar-right">
+    <span style="color:var(--c-t3);font-size:11px;">多阵面批量：</span>
+    <button class="btn btn-acc" onclick="toast('雷控参数下发中…','info')">下发雷控参数</button>
+    <button class="btn btn-ok"  onclick="toast('信处参数下发中…','ok')">下发信处参数</button>
+    <div class="sep-v"></div>
+    <button class="btn" onclick="toast('已恢复默认','info')">恢复默认</button>
     <button class="btn" onclick="toast('参数已保存','ok')">保存参数</button>
-    <div class="vdivider"></div>
-    <button class="btn btn-accent" onclick="toast('雷控参数下发中…','info')">下发多阵面雷控参数</button>
-    <button class="btn btn-green"  onclick="toast('信处参数下发中…','info')">下发多阵面信处参数</button>
-    <div class="vdivider"></div>
-    <button class="btn btn-accent" onclick="toast('配置组管理','info')">
+    <div class="sep-v"></div>
+    <button class="btn btn-acc" onclick="toast('配置组管理','info')">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
         <circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.2"/>
-        <path d="M6 1v1.5M6 9.5V11M1 6h1.5M9.5 6H11M2.6 2.6l1.1 1.1M8.3 8.3l1.1 1.1M9.4 2.6l-1.1 1.1M3.7 8.3l-1.1 1.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M6 1v1.5M6 9.5V11M1 6h1.5M9.5 6H11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M2.8 2.8l1 1M8.2 8.2l1 1M9.2 2.8l-1 1M3.8 8.2l-1 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
       </svg>
       配置组管理
     </button>
   </div>
 </div>
 
-<!-- ============================================================
-     MAIN
-     ============================================================ -->
-<div class="main">
+<!-- ================================================================
+     ARRAY TABS
+     ================================================================ -->
+<div class="arr-tabbar" id="arrTabbar">
+  <!-- rendered by JS -->
+</div>
+
+<!-- ================================================================
+     BODY
+     ================================================================ -->
+<div class="body-wrap">
 
   <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sidebar-hd">
-      <span class="sidebar-hd-title">阵面列表</span>
-    </div>
-    <div class="sidebar-body" id="sidebarBody"></div>
-    <div class="sidebar-footer">
-      <button class="add-array-btn" onclick="addArray()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <line x1="6" y1="1" x2="6" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        添加阵面
-      </button>
-    </div>
+    <div class="sb-hd"><span class="sb-hd-title">参数导航</span></div>
+    <div class="sb-body" id="sidebarBody"></div>
   </div>
 
   <!-- CONTENT -->
@@ -846,9 +529,9 @@ select.inp {
 <div id="toast"></div>
 
 <script>
-/* ============================================================
+/* ================================================================
    STATE
-   ============================================================ */
+   ================================================================ */
 const S = {
   arrays: [
     { id:1, name:'阵面1', online:true  },
@@ -856,687 +539,643 @@ const S = {
     { id:3, name:'阵面3', online:false },
     { id:4, name:'阵面4', online:true  },
   ],
-  sel:     1,          // selected array id
-  tab:     'radar',    // 'radar' | 'signal'
-  rTab:    'work',     // radar sub-tab
-  sTab:    'calib',    // signal sub-tab
-  expanded:{ 1:true, 2:false, 3:false, 4:false }
+  arr:    1,        // active array id
+  node:   'radar.work',   // active nav node key
+  exp:    { radar: true, signal: true },  // expanded state
 };
 
-/* ============================================================
-   TAB DEFINITIONS
-   ============================================================ */
-const RADAR_TABS = [
-  { key:'work',    label:'工作参数'   },
-  { key:'silence', label:'扇区静默'   },
-  { key:'beam',    label:'波位配置'   },
-  { key:'channel', label:'通道参数'   },
+/* ================================================================
+   NAV TREE DEFINITION
+   ================================================================ */
+const NAV = [
+  {
+    key: 'radar', label: '雷控参数', type: 'radar',
+    children: [
+      { key:'radar.work',    label:'工作参数'    },
+      { key:'radar.silence', label:'扇区静默'    },
+      { key:'radar.beam',    label:'波位配置'    },
+      { key:'radar.channel', label:'通道参数'    },
+    ]
+  },
+  {
+    key: 'signal', label: '信处参数', type: 'signal',
+    children: [
+      { key:'signal.calib',    label:'雷达校准参数' },
+      { key:'signal.filter',   label:'目标筛选参数' },
+      { key:'signal.cfar',     label:'CFAR参数'     },
+      { key:'signal.beamform', label:'波束形成信息' },
+      { key:'signal.track',    label:'点航迹参数'   },
+      { key:'signal.harmonic', label:'谐波识别参数' },
+      { key:'signal.swarm',    label:'蜂群配置参数' },
+      { key:'signal.storage',  label:'数据存储'     },
+      { key:'signal.misc',     label:'其他'         },
+    ]
+  }
 ];
 
-const SIGNAL_TABS = [
-  { key:'calib',   label:'雷达校准参数' },
-  { key:'filter',  label:'目标筛选参数' },
-  { key:'cfar',    label:'CFAR参数'     },
-  { key:'beamform',label:'波束形成信息' },
-  { key:'track',   label:'点航迹参数'   },
-  { key:'harmonic',label:'谐波识别参数' },
-  { key:'swarm',   label:'蜂群配置参数' },
-  { key:'storage', label:'数据存储'     },
-  { key:'misc',    label:'其他'         },
-];
-
-/* ============================================================
-   ICONS (inline SVG, no emoji)
-   ============================================================ */
-const ICON_RADAR = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-  <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1"/>
-  <circle cx="6.5" cy="6.5" r="2.5" stroke="currentColor" stroke-width="1"/>
-  <line x1="6.5" y1="1" x2="6.5" y2="6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="6.5" y1="6.5" x2="11" y2="4" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+/* ================================================================
+   SVG ICONS
+   ================================================================ */
+const ICON_RADAR = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+  <circle cx="6" cy="6" r="5" stroke="#2878d0" stroke-width="1"/>
+  <circle cx="6" cy="6" r="2" stroke="#2878d0" stroke-width="1"/>
+  <line x1="6" y1="1" x2="6" y2="4" stroke="#2878d0" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="6" y1="6" x2="10" y2="3.5" stroke="#2878d0" stroke-width=".8" stroke-linecap="round" opacity=".6"/>
 </svg>`;
 
-const ICON_SIGNAL = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-  <polyline points="1,10 3,6 5,8 7,3 9,7 11,4 12,5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+const ICON_SIGNAL = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+  <polyline points="1,9 3,5.5 5,7 7,3 9,6.5 11,4.5"
+    stroke="#279a65" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-/* ============================================================
-   SIDEBAR RENDER
-   ============================================================ */
+/* ================================================================
+   RENDER ARRAY TABS
+   ================================================================ */
+function renderArrTabs() {
+  const bar = document.getElementById('arrTabbar');
+  bar.innerHTML = S.arrays.map(a => `
+    <div class="arr-tab ${a.id===S.arr?'active':''} ${a.online?'online':''}"
+         onclick="selectArr(${a.id})">
+      <div class="arr-tab-dot"></div>
+      ${a.name}
+    </div>`).join('') +
+    `<div class="arr-tab-add" onclick="addArr()">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <line x1="5" y1="1" x2="5" y2="9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      新增阵面
+    </div>`;
+}
+
+/* ================================================================
+   RENDER SIDEBAR
+   ================================================================ */
 function renderSidebar() {
   const el = document.getElementById('sidebarBody');
-  el.innerHTML = S.arrays.map(a => {
-    const open = S.expanded[a.id];
-    const rActive = S.sel===a.id && S.tab==='radar';
-    const sActive = S.sel===a.id && S.tab==='signal';
-    const nodeSelected = S.sel===a.id;
+  el.innerHTML = NAV.map(cat => {
+    const open = S.exp[cat.key];
+    const count = cat.children.length;
     return `
-      <div class="tree-node">
-        <div class="tree-node-hd ${nodeSelected?'selected':''}" onclick="toggleNode(${a.id})">
-          <i class="tree-caret ${open?'open':''}">▶</i>
-          <div class="array-num">${a.id}</div>
-          <span class="tree-node-label">${a.name}</span>
-          ${a.online ? `<div class="tree-online" title="在线"></div>` : ''}
+      <div class="cat-group">
+        <div class="cat-hd" onclick="toggleCat('${cat.key}')">
+          <span class="cat-caret ${open?'open':''}">▶</span>
+          <div class="cat-chip">
+            <div class="cat-chip-icon ${cat.type}">${cat.type==='radar'?ICON_RADAR:ICON_SIGNAL}</div>
+            <span class="cat-chip-label">${cat.label}</span>
+            <span class="cat-chip-count">${count}</span>
+          </div>
         </div>
-        <div class="tree-children ${open?'open':''}">
-          <div class="tree-leaf ${rActive?'active':''}" onclick="go(${a.id},'radar')">
-            <span class="leaf-icon">${ICON_RADAR}</span>雷控参数
-          </div>
-          <div class="tree-leaf ${sActive?'active':''}" onclick="go(${a.id},'signal')">
-            <span class="leaf-icon">${ICON_SIGNAL}</span>信处参数
-          </div>
+        <div class="cat-children ${open?'open':''}">
+          ${cat.children.map(leaf => `
+            <div class="leaf ${S.node===leaf.key?'active':''}" onclick="selectNode('${leaf.key}')">
+              <div class="leaf-inner">
+                <div class="leaf-dot"></div>
+                ${leaf.label}
+              </div>
+            </div>`).join('')}
         </div>
       </div>`;
   }).join('');
 }
 
-function toggleNode(id) {
-  S.expanded[id] = !S.expanded[id];
+/* ================================================================
+   ACTIONS
+   ================================================================ */
+function selectArr(id) {
+  S.arr = id;
+  renderArrTabs();
+  renderContent();
+}
+
+function addArr() {
+  const id = S.arrays.length + 1;
+  S.arrays.push({ id, name:`阵面${id}`, online:false });
+  S.arr = id;
+  renderArrTabs();
+  renderContent();
+}
+
+function toggleCat(key) {
+  S.exp[key] = !S.exp[key];
   renderSidebar();
 }
 
-function go(id, tab) {
-  S.sel = id;
-  S.tab = tab;
-  S.expanded[id] = true;
-  if (tab==='radar')  S.rTab = 'work';
-  if (tab==='signal') S.sTab = 'calib';
+function selectNode(key) {
+  S.node = key;
   renderSidebar();
   renderContent();
 }
 
-function addArray() {
-  const id = S.arrays.length + 1;
-  S.arrays.push({ id, name:`阵面${id}`, online:false });
-  S.expanded[id] = true;
-  go(id, 'radar');
-}
-
-/* ============================================================
-   CONTENT RENDER
-   ============================================================ */
+/* ================================================================
+   CONTENT DISPATCH
+   ================================================================ */
 function renderContent() {
-  const arr = S.arrays.find(a=>a.id===S.sel);
-  document.getElementById('mainContent').innerHTML =
-    S.tab==='radar' ? buildRadar(arr) : buildSignal(arr);
-}
+  const arr = S.arrays.find(a=>a.id===S.arr);
+  const [cat, sub] = S.node.split('.');
 
-/* ============================================================
-   TAB BAR BUILDER
-   ============================================================ */
-function tabBar(tabs, active, onClickFn, meta) {
-  const tabsHtml = tabs.map((t,i) => `
-    <div class="tab ${active===t.key?'active':''}" onclick="${onClickFn}('${t.key}')">
-      <span class="tab-num">${i+1}</span>${t.label}
-    </div>`).join('');
+  // breadcrumb
+  const catLabel  = NAV.find(n=>n.key===cat)?.label || '';
+  const nodeLabel = NAV.flatMap(n=>n.children).find(c=>c.key===S.node)?.label || '';
 
-  return `
-    <div class="tabbar-wrap">
-      <div class="tabbar-meta">
-        <div class="tabbar-path">
-          <span class="tabbar-path-seg">${meta.arr.name}</span>
-          <span class="tabbar-path-sep">›</span>
-          <span class="tabbar-path-cur">${meta.section}</span>
-        </div>
-        ${meta.extra || ''}
-      </div>
-      <div class="tabbar">${tabsHtml}</div>
-    </div>`;
-}
-
-/* ============================================================
-   RADAR PANEL
-   ============================================================ */
-function buildRadar(arr) {
-  return tabBar(RADAR_TABS, S.rTab, 'setRTab', {
-      arr, section:'雷控参数'
-    }) +
-    `<div class="panel-wrap">
-      <div class="panel-scroll" id="panelScroll">
-        ${renderRadarTab(arr)}
-      </div>
-      <div class="footer">
-        <button class="btn" onclick="toast('已取消修改','info')">取消修改</button>
-        <button class="btn" onclick="toast('雷控参数已保存','ok')">保存参数</button>
-        <button class="btn btn-primary" onclick="toast('雷控参数发送成功','ok')">发　　送</button>
-      </div>
-    </div>`;
-}
-
-function setRTab(key) {
-  S.rTab = key;
-  document.querySelectorAll('.tab').forEach(el => {
-    const label = RADAR_TABS.find(t=>t.key===key).label;
-    el.classList.toggle('active', el.textContent.trim().replace(/^\d+/,'') === label);
-  });
-  document.getElementById('panelScroll').innerHTML = renderRadarTab(
-    S.arrays.find(a=>a.id===S.sel)
-  );
-}
-
-function renderRadarTab(arr) {
-  switch(S.rTab) {
-    case 'work':    return radarWork(arr);
-    case 'silence': return radarSilence(arr);
-    case 'beam':    return radarBeam(arr);
-    case 'channel': return radarChannel(arr);
-    default: return '';
+  let extraHtml = '';
+  if (cat === 'signal') {
+    extraHtml = `
+      <div class="content-hd-extra">
+        <span style="color:var(--c-t3);font-size:11px;">阵面类型</span>
+        <select class="inp inp-150">
+          <option>1/2号阵面旧设计(0x01)</option>
+          <option>1/2号阵面新设计(0x02)</option>
+          <option>3/4号阵面(0x03)</option>
+        </select>
+      </div>`;
   }
+
+  let footerHtml = '';
+  if (cat === 'radar') {
+    footerHtml = `
+      <button class="btn" onclick="toast('已取消修改','info')">取消修改</button>
+      <button class="btn" onclick="toast('雷控参数已保存','ok')">保存参数</button>
+      <button class="btn btn-fill" onclick="toast('雷控参数发送成功','ok')">发　　送</button>`;
+  } else {
+    footerHtml = `
+      <button class="btn" onclick="toast('已取消修改','info')">取消修改</button>
+      <button class="btn" onclick="toast('信处参数已保存','ok')">保存信处参数</button>
+      <button class="btn btn-fill" onclick="toast('信处参数发送成功','ok')">发送信处参数</button>`;
+  }
+
+  const panelHtml = PANELS[S.node] ? PANELS[S.node](arr) : `<p style="color:var(--c-t3);padding:20px">暂无内容</p>`;
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="content-hd">
+      <div class="breadcrumb">
+        <span class="bc-seg">${arr.name}</span>
+        <span class="bc-sep">›</span>
+        <span class="bc-seg">${catLabel}</span>
+        <span class="bc-sep">›</span>
+        <span class="bc-cur">${nodeLabel}</span>
+      </div>
+      ${extraHtml}
+    </div>
+    <div class="panel-scroll" id="panelScroll">${panelHtml}</div>
+    <div class="footer">${footerHtml}</div>
+  `;
 }
 
-/* --- radar: 工作参数 --- */
-function radarWork(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">基本信息</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">阵面编号</span><input class="inp inp-100" value="${arr.id}" readonly></div>
-          <div class="pr"><span class="pl">阵面名称</span><input class="inp inp-150" value="${arr.name}"></div>
+/* ================================================================
+   PANEL CONTENT MAP
+   ================================================================ */
+const PANELS = {};
+
+/* ------ RADAR: 工作参数 ------ */
+PANELS['radar.work'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar"></div><span class="sg-title">基本信息</span></div>
+    <div class="sg-body">
+      <div class="pg pg-3">
+        <div class="pr"><span class="pl">阵面编号</span><input class="inp inp-80" value="${arr.id}" readonly></div>
+        <div class="pr"><span class="pl">阵面名称</span><input class="inp inp-120" value="${arr.name}"></div>
+        <div class="pr"><span class="pl">在线状态</span>
+          <span style="color:${arr.online?'var(--c-ok)':'var(--c-t3)'};font-size:11px;padding:2px 8px;background:${arr.online?'var(--c-ok-bg)':'var(--c-bg0)'};border:1px solid ${arr.online?'var(--c-ok-bd)':'var(--c-line)'};border-radius:2px;">
+            ${arr.online?'● 在线':'○ 离线'}
+          </span>
         </div>
       </div>
     </div>
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">工作参数</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr">
-            <span class="pl">工作模式</span>
-            <select class="inp inp-150"><option>边跟踪边扫描</option><option>搜索模式</option><option>跟踪模式</option><option>引导模式</option></select>
-          </div>
-          <div class="pr">
-            <span class="pl">工作频点</span>
-            <input class="inp inp-100" value="9.02"><span class="pu">GHz</span>
-          </div>
-          <div class="pr">
-            <span class="pl">STC控制开关</span>
-            <select class="inp inp-150"><option>关闭STC</option><option>开启STC</option></select>
-          </div>
-          <div class="pr">
-            <span class="pl">MGC衰减量</span>
-            <input class="inp inp-100" value="0.0"><span class="pu">dB</span>
-          </div>
+  </div>
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar"></div><span class="sg-title">工作参数</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr">
+          <span class="pl">工作模式</span>
+          <select class="inp inp-150"><option>边跟踪边扫描</option><option>搜索模式</option><option>跟踪模式</option><option>引导模式</option></select>
+        </div>
+        <div class="pr">
+          <span class="pl">工作频点</span>
+          <input class="inp inp-100" value="9.02"><span class="pu">GHz</span>
+        </div>
+        <div class="pr">
+          <span class="pl">STC控制开关</span>
+          <select class="inp inp-150"><option>关闭STC</option><option>开启STC</option></select>
+        </div>
+        <div class="pr">
+          <span class="pl">MGC衰减量</span>
+          <input class="inp inp-100" value="0.0"><span class="pu">dB</span>
         </div>
       </div>
-    </div>`;
-}
+    </div>
+  </div>`;
 
-/* --- radar: 扇区静默 --- */
-function radarSilence(arr) {
-  const sectors = [1,2,3].map(n => `
-    <div class="pr"><span class="pl">扇区${n}方位起始</span><input class="inp inp-100" value="0.000"><span class="pu">°</span></div>
-    <div class="pr"><span class="pl">扇区${n}方位结束</span><input class="inp inp-100" value="0.000"><span class="pu">°</span></div>
-  `).join('');
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">扇区静默</span></div>
-      <div class="sg-body">
-        <div class="pr" style="margin-bottom:10px;">
-          <span class="pl">扇区静默开关</span>
-          <div class="rg">
-            <label class="rl"><input type="radio" name="sil_${arr.id}" checked><div class="rc"></div><span>关闭</span></label>
-            <label class="rl"><input type="radio" name="sil_${arr.id}"><div class="rc"></div><span>打开</span></label>
-          </div>
+/* ------ RADAR: 扇区静默 ------ */
+PANELS['radar.silence'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar"></div><span class="sg-title">扇区静默</span></div>
+    <div class="sg-body">
+      <div class="pr" style="margin-bottom:10px;">
+        <span class="pl">扇区静默开关</span>
+        <div class="rg">
+          <label class="rl"><input type="radio" name="sil_${arr.id}" checked><div class="rc"></div><span>关闭</span></label>
+          <label class="rl"><input type="radio" name="sil_${arr.id}"><div class="rc"></div><span>打开</span></label>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div class="pg pg-2">
+        ${[1,2,3].map(n=>`
+        <div class="pr"><span class="pl">扇区${n}方位起始角度</span><input class="inp inp-100" value="0.000"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">扇区${n}方位结束角度</span><input class="inp inp-100" value="0.000"><span class="pu">°</span></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+/* ------ RADAR: 波位配置 ------ */
+PANELS['radar.beam'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar"></div><span class="sg-title">波位配置</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">收发方位起始波位</span><select class="inp inp-150"><option></option></select></div>
+        <div class="pr"><span class="pl">收发方位结束波位</span><select class="inp inp-150"><option></option></select></div>
+        <div class="pr"><span class="pl">收发俯仰起始波位</span><select class="inp inp-150"><option></option></select></div>
+        <div class="pr"><span class="pl">收发俯仰结束波位</span><select class="inp inp-150"><option></option></select></div>
+      </div>
+    </div>
+  </div>`;
+
+/* ------ RADAR: 通道参数 ------ */
+PANELS['radar.channel'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar"></div><span class="sg-title">加权与衰减</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr">
+          <span class="pl">通道加权模式</span>
+          <select class="inp inp-150"><option>不加窗(仅调平)</option><option>汉明窗</option><option>泰勒窗</option></select>
+        </div>
+        <div class="pr"><span class="pl">SLB通道衰减</span><input class="inp inp-100" value="0.0"><span class="pu">dB</span></div>
+        ${[1,2,3].map(n=>`<div class="pr"><span class="pl">SLC${n}通道衰减</span><input class="inp inp-100" value="0.0"><span class="pu">dB</span></div>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar"></div><span class="sg-title">录取选择</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">SLB通道录取选择</span><select class="inp inp-120"><option>不录取</option><option>录取</option></select></div>
+        ${[1,2,3].map(n=>`<div class="pr"><span class="pl">SLC${n}通道录取选择</span><select class="inp inp-120"><option>不录取</option><option>录取</option></select></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+/* ------ SIGNAL: 雷达校准参数 ------ */
+PANELS['signal.calib'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">误差矫正</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">距离矫正</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">方位矫正</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">速度矫正</span><input class="inp inp-100" value="0.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">俯仰矫正</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">方位矫正2</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">方位矫正3</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">俯仰矫正2</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">俯仰矫正3</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">方位矫正4</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">俯仰矫正4</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">坐标与安装</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="full-row">
+          <label class="cl"><input type="checkbox"><div class="cc"></div><span>使用惯导数据更新经纬高</span></label>
         </div>
         <div class="sep"></div>
-        <div class="pg pg-2">${sectors}</div>
-      </div>
-    </div>`;
-}
-
-/* --- radar: 波位配置 --- */
-function radarBeam(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">波位配置</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">收发方位起始波位</span><select class="inp inp-150"><option></option></select></div>
-          <div class="pr"><span class="pl">收发方位结束波位</span><select class="inp inp-150"><option></option></select></div>
-          <div class="pr"><span class="pl">收发俯仰起始波位</span><select class="inp inp-150"><option></option></select></div>
-          <div class="pr"><span class="pl">收发俯仰结束波位</span><select class="inp inp-150"><option></option></select></div>
-        </div>
-      </div>
-    </div>`;
-}
-
-/* --- radar: 通道参数 --- */
-function radarChannel(arr) {
-  const slcAtten  = [1,2,3].map(n=>`<div class="pr"><span class="pl">SLC${n}通道衰减</span><input class="inp inp-100" value="0.0"><span class="pu">dB</span></div>`).join('');
-  const slcRecord = [1,2,3].map(n=>`<div class="pr"><span class="pl">SLC${n}通道录取选择</span><select class="inp inp-120"><option>不录取</option><option>录取</option></select></div>`).join('');
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">通道参数</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr">
-            <span class="pl">通道加权模式</span>
-            <select class="inp inp-150"><option>不加窗(仅调平)</option><option>汉明窗</option><option>泰勒窗</option></select>
-          </div>
-          <div class="pr"><span class="pl">SLB通道衰减</span><input class="inp inp-100" value="0.0"><span class="pu">dB</span></div>
-          ${slcAtten}
-          <div class="sep" style="grid-column:1/-1;margin:2px 0;"></div>
-          <div class="pr"><span class="pl">SLB通道录取选择</span><select class="inp inp-120"><option>不录取</option><option>录取</option></select></div>
-          ${slcRecord}
-        </div>
-      </div>
-    </div>`;
-}
-
-/* ============================================================
-   SIGNAL PANEL
-   ============================================================ */
-function buildSignal(arr) {
-  const typeExtra = `
-    <div class="tabbar-type" style="margin-left:auto;">
-      <label>阵面类型</label>
-      <select class="inp inp-150">
-        <option>1/2号阵面旧设计(0x01)</option>
-        <option>1/2号阵面新设计(0x02)</option>
-        <option>3/4号阵面(0x03)</option>
-      </select>
-    </div>`;
-
-  return tabBar(SIGNAL_TABS, S.sTab, 'setSTab', {
-      arr, section:'信处参数', extra: typeExtra
-    }) +
-    `<div class="panel-wrap">
-      <div class="panel-scroll" id="panelScroll">
-        ${renderSignalTab(arr)}
-      </div>
-      <div class="footer">
-        <button class="btn" onclick="toast('已取消修改','info')">取消修改</button>
-        <button class="btn" onclick="toast('信处参数已保存','ok')">保存信处参数</button>
-        <button class="btn btn-primary" onclick="toast('信处参数发送成功','ok')">发送信处参数</button>
-      </div>
-    </div>`;
-}
-
-function setSTab(key) {
-  S.sTab = key;
-  document.querySelectorAll('.tab').forEach(el => {
-    const t = SIGNAL_TABS.find(t=>t.key===key);
-    el.classList.toggle('active', el.textContent.trim().replace(/^\d+/,'') === t.label);
-  });
-  document.getElementById('panelScroll').innerHTML = renderSignalTab(
-    S.arrays.find(a=>a.id===S.sel)
-  );
-}
-
-function renderSignalTab(arr) {
-  switch(S.sTab) {
-    case 'calib':    return sigCalib(arr);
-    case 'filter':   return sigFilter(arr);
-    case 'cfar':     return sigCFAR(arr);
-    case 'beamform': return sigBeamform(arr);
-    case 'track':    return sigTrack(arr);
-    case 'harmonic': return sigHarmonic(arr);
-    case 'swarm':    return sigSwarm(arr);
-    case 'storage':  return sigStorage(arr);
-    case 'misc':     return sigMisc(arr);
-    default: return '';
-  }
-}
-
-/* ---- signal tabs ---- */
-function sigCalib(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">误差矫正</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">距离矫正</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">方位矫正</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">速度矫正</span><input class="inp inp-100" value="0.00"><span class="pu">m/s</span></div>
-          <div class="pr"><span class="pl">俯仰矫正</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">方位矫正2</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">方位矫正3</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">俯仰矫正2</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">俯仰矫正3</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">方位矫正4</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">俯仰矫正4</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-        </div>
+        <div class="pr"><span class="pl">雷达坐标高度</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">雷达坐标经度</span><input class="inp inp-100" value="0"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">雷达坐标纬度</span><input class="inp inp-100" value="0"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">阵面安装倾角</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl pl-m">阵面法向与惯导X轴夹角</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">组合惯导使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
       </div>
     </div>
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">坐标与安装参数</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr" style="grid-column:1/-1;">
-            <label class="cl"><input type="checkbox"><div class="cc"></div><span>使用惯导数据更新经纬高</span></label>
-          </div>
-          <div class="pr"><span class="pl">雷达坐标高度</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">雷达坐标经度</span><input class="inp inp-100" value="0"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">雷达坐标纬度</span><input class="inp inp-100" value="0"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">阵面安装倾角</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl pl-md">阵面法向与惯导X轴夹角</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">组合惯导使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
-        </div>
-      </div>
-    </div>`;
-}
+  </div>`;
 
-function sigFilter(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">目标筛选参数</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">距离最小值</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">速度最小值</span><input class="inp inp-100" value="0.00"><span class="pu">m/s</span></div>
-          <div class="pr"><span class="pl">距离最大值</span><input class="inp inp-100" value="20000"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">速度最大值</span><input class="inp inp-100" value="1.00"><span class="pu">m/s</span></div>
-          <div class="pr"><span class="pl">方位最小值</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">高度最小值</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">方位最大值</span><input class="inp inp-100" value="3.60"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">高度最大值</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">俯仰最小值</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">RCS最小值</span><input class="inp inp-100" value="-50"><span class="pu">dbm²</span></div>
-          <div class="pr"><span class="pl">俯仰最大值</span><input class="inp inp-100" value="0.90"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">RCS最大值</span><input class="inp inp-100" value="50"><span class="pu">dbm²</span></div>
-        </div>
-      </div>
-    </div>`;
-}
-
-function sigCFAR(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">基本参数</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">距离维参考单元数</span><input class="inp inp-100" value="10"></div>
-          <div class="pr"><span class="pl">多普勒参考单元数</span><input class="inp inp-100" value="10"></div>
-          <div class="pr"><span class="pl">距离维保护单元数</span><input class="inp inp-100" value="10"></div>
-          <div class="pr"><span class="pl">多普勒保护单元数</span><input class="inp inp-100" value="10"></div>
-        </div>
+/* ------ SIGNAL: 目标筛选 ------ */
+PANELS['signal.filter'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">目标筛选参数</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">距离最小值</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">速度最小值</span><input class="inp inp-100" value="0.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">距离最大值</span><input class="inp inp-100" value="20000"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">速度最大值</span><input class="inp inp-100" value="1.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">方位最小值</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">高度最小值</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">方位最大值</span><input class="inp inp-100" value="3.60"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">高度最大值</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">俯仰最小值</span><input class="inp inp-100" value="0.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">RCS最小值</span><input class="inp inp-100" value="-50"><span class="pu">dbm²</span></div>
+        <div class="pr"><span class="pl">俯仰最大值</span><input class="inp inp-100" value="0.90"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">RCS最大值</span><input class="inp inp-100" value="50"><span class="pu">dbm²</span></div>
       </div>
     </div>
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">CFAR分段参数</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl pl-md">一级门限计算方法</span><select class="inp inp-120"><option>动态计算噪</option><option>固定门限</option></select></div>
-          <div class="pr"><span class="pl">噪底水平</span><input class="inp inp-100" value="24.00"><span class="pu">dB</span></div>
-          <div class="pr"><span class="pl pl-md">零频附近参考单元剔除标志</span><select class="inp inp-100"><option>不剔除</option><option>剔除</option></select></div>
-          <div class="pr"><span class="pl">零频剔除速度范围</span><input class="inp inp-100" value="1.00"></div>
-          <div class="pr"><span class="pl">短脉冲分段距离</span><input class="inp inp-100" value="1000"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">短脉冲一级门限1</span><input class="inp inp-100" value="10"><span class="pu">dB</span></div>
-          <div class="pr"><span class="pl">短脉冲一级门限2</span><input class="inp inp-100" value="10"><span class="pu">dB</span></div>
-          <div class="pr"><span class="pl pl-md">短脉冲非相参二级门限1</span><input class="inp inp-100" value="10"><span class="pu">dB</span></div>
-          <div class="pr"><span class="pl pl-md">短脉冲非相参二级门限2</span><input class="inp inp-100" value="10"><span class="pu">dB</span></div>
-          <div class="pr"><span class="pl">长脉冲分段点数量</span><select class="inp inp-100"><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-          <div class="sep" style="grid-column:1/-1;margin:4px 0;"></div>
-          ${[1,2,3,4,5].map(n=>`
-          <div class="pr"><span class="pl">长脉冲分段距离${n}</span><input class="inp inp-100" value="5000"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">长脉冲一级门限${n}</span><input class="inp inp-100" value="10"><span class="pu">dB</span></div>`).join('')}
-          <div class="sep" style="grid-column:1/-1;margin:4px 0;"></div>
-          <div class="pr"><span class="pl">速度插值使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
-          <div class="pr"><span class="pl">速度插值FFT点数</span><select class="inp inp-100"><option>2048</option><option>1024</option><option>512</option></select></div>
-          <div class="pr"><span class="pl">远距离虚警率</span><input class="inp inp-100" value="6"></div>
-          <div class="pr"><span class="pl">远距离设置</span><input class="inp inp-100" value="8.00"><span class="pu">km</span></div>
-        </div>
+  </div>`;
+
+/* ------ SIGNAL: CFAR ------ */
+PANELS['signal.cfar'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">CFAR基本参数</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">距离维参考单元数</span><input class="inp inp-80" value="10"></div>
+        <div class="pr"><span class="pl">多普勒参考单元数</span><input class="inp inp-80" value="10"></div>
+        <div class="pr"><span class="pl">距离维保护单元数</span><input class="inp inp-80" value="10"></div>
+        <div class="pr"><span class="pl">多普勒保护单元数</span><input class="inp inp-80" value="10"></div>
       </div>
     </div>
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">杂波图</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">杂波图使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
-          <div class="pr"><span class="pl">杂波图建图通道</span><select class="inp inp-120"><option>仅零通道</option><option>全通道</option></select></div>
-          <div class="pr"><span class="pl pl-md">多普勒建图速度大小</span><input class="inp inp-100" value="2.00"></div>
-          <div class="pr"><span class="pl">杂波图轮廓门限</span><input class="inp inp-100" value="2.10"></div>
-          <div class="pr"><span class="pl pl-md">短脉冲建杂波图距离</span><input class="inp inp-100" value="3000"></div>
-          <div class="pr"><span class="pl pl-md">杂波幅度/方差迭代系数</span><select class="inp inp-100"><option>1/16</option><option>1/8</option></select></div>
-          <div class="pr"><span class="pl pl-md">长脉冲建杂波图距离</span><input class="inp inp-100" value="15000"></div>
-          <div class="pr"><span class="pl">杂波图距离扩展单元</span><select class="inp inp-80"><option>2</option><option>4</option></select></div>
-          <div class="pr"><span class="pl pl-md">零通道杂波图检测幅度门限</span><input class="inp inp-100" value="1.00"></div>
-          <div class="pr"><span class="pl">杂波图方位扩展单元</span><select class="inp inp-80"><option>2</option><option>4</option></select></div>
-          <div class="pr"><span class="pl pl-md">零通道杂波图检测方差门限</span><input class="inp inp-100" value="3.00"></div>
-        </div>
-      </div>
-    </div>`;
-}
-
-function sigBeamform(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">波束形成信息</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl pl-md">波束宽度和差匹配限制</span><select class="inp inp-120"><option>关闭</option><option>开启</option></select></div>
-          <div class="pr"><span class="pl">SLB(旁瓣匿影)</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
-          <div class="pr"><span class="pl">MTI类型</span><select class="inp inp-150"><option>不做MTI</option><option>固定MTI</option><option>自适应MTI</option></select></div>
-          <div class="pr"><span class="pl">MTI滤波器阶数</span><select class="inp inp-150"><option>3脉冲对消</option><option>2脉冲对消</option><option>4脉冲对消</option></select></div>
-          <div class="pr"><span class="pl">脉冲积累类型</span><select class="inp inp-150"><option>相参积累</option><option>非相参积累</option></select></div>
-          <div class="pr"><span class="pl">半脉压</span><select class="inp inp-100"><option>关闭</option><option>开启</option></select></div>
-        </div>
-      </div>
-    </div>`;
-}
-
-function sigTrack(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">点参数</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">点迹凝聚方式</span><select class="inp inp-150"><option>加权末平均值</option><option>算术平均</option></select></div>
-          <div class="pr"><span class="pl">凝聚帧数</span><input class="inp inp-100" value="10"></div>
-          <div class="pr"><span class="pl">距离凝聚门限</span><input class="inp inp-100" value="1.00"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">方位凝聚门限</span><input class="inp inp-100" value="0.10"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">俯仰凝聚门限</span><input class="inp inp-100" value="0.10"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">速度凝聚门限</span><input class="inp inp-100" value="0.00"><span class="pu">m/s</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">航迹参数</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">航迹起始得分</span><input class="inp inp-100" value="1"></div>
-          <div class="pr"><span class="pl">航迹起始得分2</span><input class="inp inp-100" value="1"></div>
-          <div class="pr"><span class="pl">航迹保留得分</span><input class="inp inp-100" value="1"></div>
-          <div class="pr"><span class="pl">航迹最大得分</span><input class="inp inp-100" value="1"></div>
-          <div class="pr"><span class="pl">速度关联使能</span><select class="inp inp-120"><option>使能</option><option>不使能</option></select></div>
-          <div class="pr"><span class="pl pl-md">已识别航迹得分最大时间</span><input class="inp inp-80" value="30"><span class="pu">s</span></div>
-          <div class="pr"><span class="pl">距离关联门限</span><input class="inp inp-100" value="10.00"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">距离关联门限2</span><input class="inp inp-100" value="100"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">方位关联门限</span><input class="inp inp-100" value="1.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">方位关联门限2</span><input class="inp inp-100" value="10"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">俯仰关联门限</span><input class="inp inp-100" value="1.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">俯仰关联门限2</span><input class="inp inp-100" value="10"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">速度关联门限</span><input class="inp inp-100" value="1.00"><span class="pu">m/s</span></div>
-          <div class="pr"><span class="pl">速度关联门限2</span><input class="inp inp-100" value="10"><span class="pu">m/s</span></div>
-          <div class="pr"><span class="pl">αβ滤波系数</span><input class="inp inp-100" value="0.10"></div>
-          <div class="pr"><span class="pl">启航限制距离</span><input class="inp inp-100" value="0"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">识别强度</span><select class="inp inp-120"><option>弱</option><option>中</option><option>强</option></select></div>
-          <div class="pr"><span class="pl">C2测角使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
-          <div class="pr"><span class="pl">航速变化率限制门限</span><input class="inp inp-100" value="10.00"><span class="pu">m/s</span></div>
-          <div class="pr"><span class="pl">俯仰角变化率限制门限</span><input class="inp inp-100" value="5.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">航速最大门限</span><input class="inp inp-100" value="50.00"><span class="pu">m/s</span></div>
-          <div class="pr"><span class="pl">霍夫变换门限</span><input class="inp inp-100" value="30.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">航速最小门限</span><input class="inp inp-100" value="3.00"><span class="pu">m/s</span></div>
-        </div>
-      </div>
-    </div>`;
-}
-
-function sigHarmonic(arr) {
-  return `
-    <div class="pair">
-      <div class="sg">
-        <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">MN参数</span></div>
-        <div class="sg-body">
-          <div class="pg pg-1">
-            <div class="pr"><span class="pl pl-md">连续识别成功进入MN点数</span><input class="inp inp-80" value="3"></div>
-            <div class="pr"><span class="pl pl-md">滑窗MN分子</span><input class="inp inp-80" value="4"></div>
-            <div class="pr"><span class="pl pl-md">滑窗MN分母</span><input class="inp inp-80" value="10"></div>
-            <div class="pr"><span class="pl pl-md">嵌套Mn使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
-            <div class="pr"><span class="pl pl-md">嵌套MN分子</span><input class="inp inp-80" value="8"></div>
-            <div class="pr"><span class="pl pl-md">嵌套MN分母</span><input class="inp inp-80" value="20"></div>
-          </div>
-        </div>
-      </div>
-      <div class="sg">
-        <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">识别参数</span></div>
-        <div class="sg-body">
-          <div class="pg pg-1">
-            <div class="pr"><span class="pl pl-lg">无人机最小谐波频率门限</span><input class="inp inp-80" value="80"><span class="pu">Hz</span></div>
-            <div class="pr"><span class="pl pl-lg">群体目标速度剔除门限</span><input class="inp inp-80" value="2.00"><span class="pu">m/s</span></div>
-            <div class="pr"><span class="pl pl-lg">一级鸟群剔除门限-功率差值门限</span><input class="inp inp-80" value="7.00"><span class="pu">dB</span></div>
-            <div class="pr"><span class="pl pl-lg">二级鸟群剔除门限-监测点二维分布</span><input class="inp inp-80" value="0.76"></div>
-            <div class="pr"><span class="pl pl-lg">一阶谐波间隔余量</span><input class="inp inp-80" value="0.12"></div>
-            <div class="pr"><span class="pl pl-lg">二阶谐波间隔余量</span><input class="inp inp-80" value="0.12"></div>
-            <div class="pr"><span class="pl pl-lg">三阶谐波间隔余量</span><input class="inp inp-80" value="0.12"></div>
-            <div class="pr"><span class="pl pl-lg">考虑最大谐波次数</span><input class="inp inp-80" value="4"></div>
-            <div class="pr"><span class="pl pl-lg">搜索析波频率数</span><input class="inp inp-80" value="3"></div>
-            <div class="pr"><span class="pl pl-lg">距离单元最少多普勒监测点数</span><input class="inp inp-80" value="2"></div>
-            <div class="pr"><span class="pl pl-lg">主谐比例剔除门限</span><input class="inp inp-80" value="3.00"></div>
-            <div class="pr"><span class="pl pl-lg">距离维剔除门限</span><input class="inp inp-80" value="10"></div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-}
-
-function sigSwarm(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">蜂群基本配置</span></div>
-      <div class="sg-body">
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl">点迹筛选方式</span><select class="inp inp-150"><option></option></select></div>
-          <div class="pr"><span class="pl">无人机最大数量</span><input class="inp inp-100" value="3"></div>
-          <div class="pr"><span class="pl">凝聚方式</span><select class="inp inp-120"><option>算术平均</option><option>加权平均</option></select></div>
-          <div class="pr"><span class="pl">凝聚距离门限</span><input class="inp inp-100" value="200.00"><span class="pu">m</span></div>
-          <div class="pr"><span class="pl">凝聚方位门限</span><input class="inp inp-100" value="8.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">凝聚俯仰门限</span><input class="inp inp-100" value="8.00"><span class="pu">°</span></div>
-          <div class="pr"><span class="pl">凝聚速度门限</span><input class="inp inp-100" value="10.00"><span class="pu">m/s</span></div>
-          <div class="pr"><span class="pl">凝聚速度使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
-          <div class="pr"><span class="pl pl-md">蜂群多普勒速度方向</span><select class="inp inp-150"><option>只跟踪来向蜂群</option><option>双向</option></select></div>
-        </div>
-      </div>
-    </div>
-    <div class="pair">
-      <div class="sg">
-        <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">方法 1</span></div>
-        <div class="sg-body">
-          <div class="pg pg-1">
-            <div class="pr"><span class="pl pl-md">蜂群范围</span><input class="inp inp-100" value="250.00"><span class="pu">m</span></div>
-            <div class="pr"><span class="pl pl-md">无人机最小直线距离</span><input class="inp inp-100" value="30.00"><span class="pu">m</span></div>
-            <div class="pr"><span class="pl pl-md">无人机最大直线距离</span><input class="inp inp-100" value="50.00"><span class="pu">m</span></div>
-            <div class="pr"><span class="pl pl-md">无人机最小高度</span><input class="inp inp-100" value="50.00"><span class="pu">m</span></div>
-            <div class="pr"><span class="pl pl-md">无人机最大高度</span><input class="inp inp-100" value="500.00"><span class="pu">m</span></div>
-            <div class="pr"><span class="pl pl-md">无人机最小速度</span><input class="inp inp-100" value="5.00"><span class="pu">m/s</span></div>
-            <div class="pr"><span class="pl pl-md">无人机最大速度</span><input class="inp inp-100" value="30.00"><span class="pu">m/s</span></div>
-            <div class="pr"><span class="pl pl-md">无人机速度一致性</span><input class="inp inp-100" value="10.00"><span class="pu">m/s</span></div>
-            <div class="pr"><span class="pl pl-md">无人机高度一致性</span><input class="inp inp-100" value="5.00"><span class="pu">m</span></div>
-            <div class="pr"><span class="pl pl-md">无人机航向一致性</span><input class="inp inp-100" value="90.00"><span class="pu">°</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="sg">
-        <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">方法 2</span></div>
-        <div class="sg-body">
-          <div class="pg pg-1">
-            <div class="pr"><span class="pl pl-md">搜索距离门限</span><input class="inp inp-100" value="500.00"><span class="pu">m</span></div>
-            <div class="pr"><span class="pl pl-md">搜索方位门限</span><input class="inp inp-100" value="200"><span class="pu">°</span></div>
-            <div class="pr"><span class="pl pl-md">搜索俯仰门限</span><input class="inp inp-100" value="200"><span class="pu">°</span></div>
-            <div class="pr"><span class="pl pl-md">搜索速度门限</span><input class="inp inp-100" value="200"><span class="pu">m/s</span></div>
-            <div class="pr"><span class="pl pl-md">搜索速度使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-}
-
-function sigStorage(arr) {
-  return `
-    <div class="sg">
-      <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">数据存储配置</span></div>
-      <div class="sg-body">
-        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
-          <label class="cl"><input type="checkbox"><div class="cc"></div><span>原始数据记录</span></label>
-          <label class="cl"><input type="checkbox"><div class="cc"></div><span>脉压结果存储开关</span></label>
-          <label class="cl"><input type="checkbox"><div class="cc"></div><span>跟踪波位存储</span></label>
-        </div>
-        <label class="cl" style="margin-bottom:12px;"><input type="checkbox" checked><div class="cc"></div><span>原始数据按波位灵活存储</span></label>
+  </div>
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">CFAR分段参数</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl pl-m">一级门限计算方法</span><select class="inp inp-120"><option>动态计算噪</option><option>固定门限</option></select></div>
+        <div class="pr"><span class="pl">噪底水平</span><input class="inp inp-80" value="24.00"><span class="pu">dB</span></div>
+        <div class="pr"><span class="pl pl-m">零频参考单元剔除标志</span><select class="inp inp-80"><option>不剔除</option><option>剔除</option></select></div>
+        <div class="pr"><span class="pl">零频剔除速度范围</span><input class="inp inp-80" value="1.00"></div>
+        <div class="pr"><span class="pl">短脉冲分段距离</span><input class="inp inp-100" value="1000"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">短脉冲一级门限1</span><input class="inp inp-80" value="10"><span class="pu">dB</span></div>
+        <div class="pr"><span class="pl">短脉冲一级门限2</span><input class="inp inp-80" value="10"><span class="pu">dB</span></div>
+        <div class="pr"><span class="pl pl-m">短脉冲非相参二级门限1</span><input class="inp inp-80" value="10"><span class="pu">dB</span></div>
+        <div class="pr"><span class="pl pl-m">短脉冲非相参二级门限2</span><input class="inp inp-80" value="10"><span class="pu">dB</span></div>
+        <div class="pr"><span class="pl">长脉冲分段点数量</span><select class="inp inp-80"><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
         <div class="sep"></div>
-        <div class="pg pg-2">
-          <div class="pr"><span class="pl pl-lg">搜索波位下方位起始存储波位</span><select class="inp inp-80"><option>1</option><option>2</option><option>3</option></select></div>
-          <div class="pr"><span class="pl pl-lg">搜索波位下方位结束存储波位</span><select class="inp inp-80"><option>1</option><option>2</option><option>3</option></select></div>
-          <div class="pr"><span class="pl pl-lg">搜索波位下俯仰起始存储波位</span><select class="inp inp-80"><option>1</option><option>2</option><option>3</option></select></div>
-          <div class="pr"><span class="pl pl-lg">搜索波位下俯仰结束存储波位</span><select class="inp inp-80"><option>1</option><option>2</option><option>3</option></select></div>
-        </div>
+        ${[1,2,3,4,5].map(n=>`
+        <div class="pr"><span class="pl">长脉冲分段距离${n}</span><input class="inp inp-80" value="5000"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">长脉冲一级门限${n}</span><input class="inp inp-80" value="10"><span class="pu">dB</span></div>`).join('')}
+        <div class="sep"></div>
+        <div class="pr"><span class="pl">速度插值使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
+        <div class="pr"><span class="pl">速度插值FFT点数</span><select class="inp inp-80"><option>2048</option><option>1024</option><option>512</option></select></div>
+        <div class="pr"><span class="pl">远距离虚警率</span><input class="inp inp-80" value="6"></div>
+        <div class="pr"><span class="pl">远距离设置</span><input class="inp inp-80" value="8.00"><span class="pu">km</span></div>
       </div>
-    </div>`;
-}
+    </div>
+  </div>
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">杂波图</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">杂波图使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
+        <div class="pr"><span class="pl">杂波图建图通道</span><select class="inp inp-120"><option>仅零通道</option><option>全通道</option></select></div>
+        <div class="pr"><span class="pl pl-m">多普勒建图速度大小</span><input class="inp inp-80" value="2.00"></div>
+        <div class="pr"><span class="pl">杂波图轮廓门限</span><input class="inp inp-80" value="2.10"></div>
+        <div class="pr"><span class="pl pl-m">短脉冲建杂波图距离</span><input class="inp inp-80" value="3000"></div>
+        <div class="pr"><span class="pl pl-m">杂波幅度/方差迭代系数</span><select class="inp inp-80"><option>1/16</option><option>1/8</option></select></div>
+        <div class="pr"><span class="pl pl-m">长脉冲建杂波图距离</span><input class="inp inp-80" value="15000"></div>
+        <div class="pr"><span class="pl">杂波图距离扩展单元</span><select class="inp inp-60"><option>2</option><option>4</option></select></div>
+        <div class="pr"><span class="pl pl-m">零通道杂波图检测幅度门限</span><input class="inp inp-80" value="1.00"></div>
+        <div class="pr"><span class="pl">杂波图方位扩展单元</span><select class="inp inp-60"><option>2</option><option>4</option></select></div>
+        <div class="pr"><span class="pl pl-m">零通道杂波图检测方差门限</span><input class="inp inp-80" value="3.00"></div>
+      </div>
+    </div>
+  </div>`;
 
-function sigMisc(arr) {
-  return `
-    <div class="pair">
-      <div class="sg">
-        <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">距离分区位置（退跟踪）</span></div>
-        <div class="sg-body">
-          <div class="pg pg-1">
-            <label class="cl"><input type="checkbox"><div class="cc"></div><span>使能</span></label>
-            <div class="sep"></div>
-            <div class="pr">
-              <span class="pl pl-md">退跟踪位置</span>
-              <select class="inp inp-120"><option>50.00km</option><option>30.00km</option><option>20.00km</option></select>
-            </div>
-          </div>
-        </div>
+/* ------ SIGNAL: 波束形成 ------ */
+PANELS['signal.beamform'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">波束形成信息</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl pl-m">波束宽度和差匹配限制</span><select class="inp inp-120"><option>关闭</option><option>开启</option></select></div>
+        <div class="pr"><span class="pl">SLB(旁瓣匿影)</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
+        <div class="pr"><span class="pl">MTI类型</span><select class="inp inp-150"><option>不做MTI</option><option>固定MTI</option><option>自适应MTI</option></select></div>
+        <div class="pr"><span class="pl">MTI滤波器阶数</span><select class="inp inp-150"><option>3脉冲对消</option><option>2脉冲对消</option><option>4脉冲对消</option></select></div>
+        <div class="pr"><span class="pl">脉冲积累类型</span><select class="inp inp-150"><option>相参积累</option><option>非相参积累</option></select></div>
+        <div class="pr"><span class="pl">半脉压</span><select class="inp inp-100"><option>关闭</option><option>开启</option></select></div>
       </div>
-      <div class="sg">
-        <div class="sg-hd"><div class="sg-hd-line"></div><span class="sg-hd-title">长驻留搜索波位</span></div>
-        <div class="sg-body">
-          <div class="pg pg-1">
-            <label class="cl"><input type="checkbox"><div class="cc"></div><span>使能</span></label>
-            <div class="sep"></div>
-            <div class="pr"><span class="pl pl-md">中心方位波束指向</span><select class="inp inp-120"><option>0.00°</option></select></div>
-            <div class="pr"><span class="pl pl-md">中心俯仰波束指向</span><select class="inp inp-120"><option>0.00°</option></select></div>
-            <div class="pr"><span class="pl pl-md">PRT个数</span><select class="inp inp-80"><option>1</option><option>2</option><option>4</option></select></div>
-            <div class="pr"><span class="pl pl-md">数据率</span><select class="inp inp-100"><option>0.25s</option><option>0.5s</option><option>1s</option></select></div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-}
+    </div>
+  </div>`;
 
-/* ============================================================
+/* ------ SIGNAL: 点航迹参数 ------ */
+PANELS['signal.track'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">点参数</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">点迹凝聚方式</span><select class="inp inp-150"><option>加权末平均值</option><option>算术平均</option></select></div>
+        <div class="pr"><span class="pl">凝聚帧数</span><input class="inp inp-80" value="10"></div>
+        <div class="pr"><span class="pl">距离凝聚门限</span><input class="inp inp-100" value="1.00"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">方位凝聚门限</span><input class="inp inp-100" value="0.10"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">俯仰凝聚门限</span><input class="inp inp-100" value="0.10"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">速度凝聚门限</span><input class="inp inp-100" value="0.00"><span class="pu">m/s</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">航迹参数</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">航迹起始得分</span><input class="inp inp-80" value="1"></div>
+        <div class="pr"><span class="pl">航迹起始得分2</span><input class="inp inp-80" value="1"></div>
+        <div class="pr"><span class="pl">航迹保留得分</span><input class="inp inp-80" value="1"></div>
+        <div class="pr"><span class="pl">航迹最大得分</span><input class="inp inp-80" value="1"></div>
+        <div class="pr"><span class="pl">速度关联使能</span><select class="inp inp-120"><option>使能</option><option>不使能</option></select></div>
+        <div class="pr"><span class="pl pl-m">已识别航迹得分最大时间</span><input class="inp inp-80" value="30"><span class="pu">s</span></div>
+        <div class="pr"><span class="pl">距离关联门限</span><input class="inp inp-100" value="10.00"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">距离关联门限2</span><input class="inp inp-100" value="100"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">方位关联门限</span><input class="inp inp-100" value="1.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">方位关联门限2</span><input class="inp inp-100" value="10"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">俯仰关联门限</span><input class="inp inp-100" value="1.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">俯仰关联门限2</span><input class="inp inp-100" value="10"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">速度关联门限</span><input class="inp inp-100" value="1.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">速度关联门限2</span><input class="inp inp-100" value="10"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">αβ滤波系数</span><input class="inp inp-80" value="0.10"></div>
+        <div class="pr"><span class="pl">启航限制距离</span><input class="inp inp-80" value="0"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">识别强度</span><select class="inp inp-120"><option>弱</option><option>中</option><option>强</option></select></div>
+        <div class="pr"><span class="pl">C2测角使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
+        <div class="pr"><span class="pl">航速变化率限制门限</span><input class="inp inp-100" value="10.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">俯仰角变化率限制门限</span><input class="inp inp-100" value="5.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">航速最大门限</span><input class="inp inp-100" value="50.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">霍夫变换门限</span><input class="inp inp-100" value="30.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">航速最小门限</span><input class="inp inp-100" value="3.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">参普勒速度限制门限</span><input class="inp inp-100" value="3.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">航向角限制门限</span><input class="inp inp-100" value="30.00"><span class="pu">°</span></div>
+      </div>
+    </div>
+  </div>`;
+
+/* ------ SIGNAL: 谐波识别 ------ */
+PANELS['signal.harmonic'] = (arr) => `
+  <div class="pair">
+    <div class="sg">
+      <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">MN参数</span></div>
+      <div class="sg-body">
+        <div class="pg pg-1">
+          <div class="pr"><span class="pl pl-m">连续识别成功进入MN点数</span><input class="inp inp-80" value="3"></div>
+          <div class="pr"><span class="pl pl-m">滑窗MN分子</span><input class="inp inp-80" value="4"></div>
+          <div class="pr"><span class="pl pl-m">滑窗MN分母</span><input class="inp inp-80" value="10"></div>
+          <div class="pr"><span class="pl pl-m">嵌套Mn使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
+          <div class="pr"><span class="pl pl-m">嵌套MN分子</span><input class="inp inp-80" value="8"></div>
+          <div class="pr"><span class="pl pl-m">嵌套MN分母</span><input class="inp inp-80" value="20"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">识别参数</span></div>
+      <div class="sg-body">
+        <div class="pg pg-1">
+          <div class="pr"><span class="pl pl-l">无人机最小谐波频率门限</span><input class="inp inp-80" value="80"><span class="pu">Hz</span></div>
+          <div class="pr"><span class="pl pl-l">群体目标速度剔除门限</span><input class="inp inp-80" value="2.00"><span class="pu">m/s</span></div>
+          <div class="pr"><span class="pl pl-l">一级鸟群剔除门限-功率差值</span><input class="inp inp-80" value="7.00"><span class="pu">dB</span></div>
+          <div class="pr"><span class="pl pl-l">二级鸟群剔除门限-监测点分布</span><input class="inp inp-80" value="0.76"></div>
+          <div class="pr"><span class="pl pl-l">一阶谐波间隔余量</span><input class="inp inp-80" value="0.12"></div>
+          <div class="pr"><span class="pl pl-l">二阶谐波间隔余量</span><input class="inp inp-80" value="0.12"></div>
+          <div class="pr"><span class="pl pl-l">三阶谐波间隔余量</span><input class="inp inp-80" value="0.12"></div>
+          <div class="pr"><span class="pl pl-l">考虑最大谐波次数</span><input class="inp inp-80" value="4"></div>
+          <div class="pr"><span class="pl pl-l">搜索析波频率数</span><input class="inp inp-80" value="3"></div>
+          <div class="pr"><span class="pl pl-l">距离单元最少多普勒监测点数</span><input class="inp inp-80" value="2"></div>
+          <div class="pr"><span class="pl pl-l">主谐比例剔除门限</span><input class="inp inp-80" value="3.00"></div>
+          <div class="pr"><span class="pl pl-l">距离维剔除门限</span><input class="inp inp-80" value="10"></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+/* ------ SIGNAL: 蜂群配置 ------ */
+PANELS['signal.swarm'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">蜂群基本配置</span></div>
+    <div class="sg-body">
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl">点迹筛选方式</span><select class="inp inp-150"><option></option></select></div>
+        <div class="pr"><span class="pl">无人机最大数量</span><input class="inp inp-80" value="3"></div>
+        <div class="pr"><span class="pl">凝聚方式</span><select class="inp inp-120"><option>算术平均</option><option>加权平均</option></select></div>
+        <div class="pr"><span class="pl">凝聚距离门限</span><input class="inp inp-100" value="200.00"><span class="pu">m</span></div>
+        <div class="pr"><span class="pl">凝聚方位门限</span><input class="inp inp-100" value="8.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">凝聚俯仰门限</span><input class="inp inp-100" value="8.00"><span class="pu">°</span></div>
+        <div class="pr"><span class="pl">凝聚速度门限</span><input class="inp inp-100" value="10.00"><span class="pu">m/s</span></div>
+        <div class="pr"><span class="pl">凝聚速度使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
+        <div class="pr"><span class="pl pl-m">蜂群多普勒速度方向</span><select class="inp inp-150"><option>只跟踪来向蜂群</option><option>双向</option></select></div>
+      </div>
+    </div>
+  </div>
+  <div class="pair">
+    <div class="sg">
+      <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">方法 1</span></div>
+      <div class="sg-body">
+        <div class="pg pg-1">
+          <div class="pr"><span class="pl pl-m">蜂群范围</span><input class="inp inp-100" value="250.00"><span class="pu">m</span></div>
+          <div class="pr"><span class="pl pl-m">无人机最小直线距离</span><input class="inp inp-100" value="30.00"><span class="pu">m</span></div>
+          <div class="pr"><span class="pl pl-m">无人机最大直线距离</span><input class="inp inp-100" value="50.00"><span class="pu">m</span></div>
+          <div class="pr"><span class="pl pl-m">无人机最小高度</span><input class="inp inp-100" value="50.00"><span class="pu">m</span></div>
+          <div class="pr"><span class="pl pl-m">无人机最大高度</span><input class="inp inp-100" value="500.00"><span class="pu">m</span></div>
+          <div class="pr"><span class="pl pl-m">无人机最小速度</span><input class="inp inp-100" value="5.00"><span class="pu">m/s</span></div>
+          <div class="pr"><span class="pl pl-m">无人机最大速度</span><input class="inp inp-100" value="30.00"><span class="pu">m/s</span></div>
+          <div class="pr"><span class="pl pl-m">无人机速度一致性</span><input class="inp inp-100" value="10.00"><span class="pu">m/s</span></div>
+          <div class="pr"><span class="pl pl-m">无人机高度一致性</span><input class="inp inp-100" value="5.00"><span class="pu">m</span></div>
+          <div class="pr"><span class="pl pl-m">无人机航向一致性</span><input class="inp inp-100" value="90.00"><span class="pu">°</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">方法 2</span></div>
+      <div class="sg-body">
+        <div class="pg pg-1">
+          <div class="pr"><span class="pl pl-m">搜索距离门限</span><input class="inp inp-100" value="500.00"><span class="pu">m</span></div>
+          <div class="pr"><span class="pl pl-m">搜索方位门限</span><input class="inp inp-100" value="200"><span class="pu">°</span></div>
+          <div class="pr"><span class="pl pl-m">搜索俯仰门限</span><input class="inp inp-100" value="200"><span class="pu">°</span></div>
+          <div class="pr"><span class="pl pl-m">搜索速度门限</span><input class="inp inp-100" value="200"><span class="pu">m/s</span></div>
+          <div class="pr"><span class="pl pl-m">搜索速度使能</span><select class="inp inp-120"><option>不使能</option><option>使能</option></select></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+/* ------ SIGNAL: 数据存储 ------ */
+PANELS['signal.storage'] = (arr) => `
+  <div class="sg">
+    <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">数据存储配置</span></div>
+    <div class="sg-body">
+      <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px;">
+        <label class="cl"><input type="checkbox"><div class="cc"></div><span>原始数据记录</span></label>
+        <label class="cl"><input type="checkbox"><div class="cc"></div><span>脉压结果存储开关</span></label>
+        <label class="cl"><input type="checkbox"><div class="cc"></div><span>跟踪波位存储</span></label>
+      </div>
+      <label class="cl" style="margin-bottom:10px;"><input type="checkbox" checked><div class="cc"></div><span>原始数据按波位灵活存储</span></label>
+      <div class="sep"></div>
+      <div class="pg pg-2">
+        <div class="pr"><span class="pl pl-l">搜索波位下方位起始存储波位</span><select class="inp inp-60"><option>1</option><option>2</option><option>3</option></select></div>
+        <div class="pr"><span class="pl pl-l">搜索波位下方位结束存储波位</span><select class="inp inp-60"><option>1</option><option>2</option><option>3</option></select></div>
+        <div class="pr"><span class="pl pl-l">搜索波位下俯仰起始存储波位</span><select class="inp inp-60"><option>1</option><option>2</option><option>3</option></select></div>
+        <div class="pr"><span class="pl pl-l">搜索波位下俯仰结束存储波位</span><select class="inp inp-60"><option>1</option><option>2</option><option>3</option></select></div>
+      </div>
+    </div>
+  </div>`;
+
+/* ------ SIGNAL: 其他 ------ */
+PANELS['signal.misc'] = (arr) => `
+  <div class="pair">
+    <div class="sg">
+      <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">距离分区位置（退跟踪）</span></div>
+      <div class="sg-body">
+        <div class="pg pg-1">
+          <label class="cl"><input type="checkbox"><div class="cc"></div><span>使能</span></label>
+          <div class="sep"></div>
+          <div class="pr"><span class="pl pl-m">退跟踪位置</span><select class="inp inp-120"><option>50.00km</option><option>30.00km</option><option>20.00km</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="sg">
+      <div class="sg-hd"><div class="sg-bar ok"></div><span class="sg-title">长驻留搜索波位</span></div>
+      <div class="sg-body">
+        <div class="pg pg-1">
+          <label class="cl"><input type="checkbox"><div class="cc"></div><span>使能</span></label>
+          <div class="sep"></div>
+          <div class="pr"><span class="pl pl-m">中心方位波束指向</span><select class="inp inp-100"><option>0.00°</option></select></div>
+          <div class="pr"><span class="pl pl-m">中心俯仰波束指向</span><select class="inp inp-100"><option>0.00°</option></select></div>
+          <div class="pr"><span class="pl pl-m">PRT个数</span><select class="inp inp-60"><option>1</option><option>2</option><option>4</option></select></div>
+          <div class="pr"><span class="pl pl-m">数据率</span><select class="inp inp-80"><option>0.25s</option><option>0.5s</option><option>1s</option></select></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+/* ================================================================
    TOAST
-   ============================================================ */
-let _toastTimer;
+   ================================================================ */
+let _tt;
 function toast(msg, type='info') {
   const el = document.getElementById('toast');
-  const cfg = {
-    ok:   { bg:'rgba(40,168,104,0.12)', border:'rgba(40,168,104,0.4)', color:'#28a868', icon:'✓' },
-    info: { bg:'rgba(45,125,210,0.12)', border:'rgba(45,125,210,0.4)', color:'#2d7dd2', icon:'ℹ' },
-    warn: { bg:'rgba(192,122,32,0.12)', border:'rgba(192,122,32,0.4)', color:'#c07a20', icon:'⚠' },
-    err:  { bg:'rgba(201,64,64,0.12)',  border:'rgba(201,64,64,0.4)',  color:'#c94040', icon:'✕' },
+  const m = {
+    ok:  { bg:'rgba(39,154,101,.12)', bd:'rgba(39,154,101,.4)',  c:'#279a65', i:'✓' },
+    info:{ bg:'rgba(40,120,208,.12)', bd:'rgba(40,120,208,.4)',  c:'#2878d0', i:'ℹ' },
+    warn:{ bg:'rgba(184,112,32,.12)', bd:'rgba(184,112,32,.4)',  c:'#b87020', i:'⚠' },
+    err: { bg:'rgba(192,56,56,.12)',  bd:'rgba(192,56,56,.4)',   c:'#c03838', i:'✕' },
   };
-  const c = cfg[type] || cfg.info;
-  el.style.cssText = `
-    position:fixed;bottom:20px;right:20px;padding:9px 16px;border-radius:4px;
-    font-size:12px;font-weight:500;z-index:9999;
-    display:flex;align-items:center;gap:8px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.5);
-    border:1px solid ${c.border};background:${c.bg};color:${c.color};
-    opacity:1;transform:translateY(0);transition:all 0.2s;
-  `;
-  el.innerHTML = `<span>${c.icon}</span>${msg}`;
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(()=>{
-    el.style.opacity='0';el.style.transform='translateY(6px)';
-  }, 2200);
+  const cfg = m[type]||m.info;
+  Object.assign(el.style,{
+    background:cfg.bg, border:`1px solid ${cfg.bd}`, color:cfg.c,
+    opacity:'1', transform:'translateY(0)',
+    position:'fixed',bottom:'18px',right:'18px',
+    padding:'8px 14px',borderRadius:'3px',fontSize:'12px',fontWeight:'500',
+    zIndex:'9999',display:'flex',alignItems:'center',gap:'7px',
+    boxShadow:'0 4px 18px rgba(0,0,0,.55)',transition:'all .18s',
+  });
+  el.innerHTML = `<span>${cfg.i}</span>${msg}`;
+  clearTimeout(_tt);
+  _tt = setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(5px)'; },2200);
 }
 
-/* ============================================================
+/* ================================================================
    INIT
-   ============================================================ */
+   ================================================================ */
+renderArrTabs();
 renderSidebar();
-go(1, 'radar');
+renderContent();
 </script>
 </body>
 </html>

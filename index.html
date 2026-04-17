@@ -535,24 +535,47 @@ const PX_PER_INCH = 96;
 const PT_PER_INCH = 72;
 function pxToInches(px) { return px / PX_PER_INCH; }
 
-/* 解析一个元素 transform 中的 translate */
+/* 解析一个元素 transform 中的 translate（只处理 translate，Mermaid 只会用这个） */
 function getTranslate(el) {
-  const t = el.getAttribute("transform") || "";
+  const t = (el && el.getAttribute && el.getAttribute("transform")) || "";
   const m = /translate\(\s*([-\d.eE+]+)(?:\s*[, ]\s*([-\d.eE+]+))?\s*\)/.exec(t);
   if (!m) return { x: 0, y: 0 };
   return { x: parseFloat(m[1]) || 0, y: parseFloat(m[2]) || 0 };
 }
 
-/* 递归累计祖先的 translate（直到 svg 根） */
-function getAbsoluteOffset(el, root) {
+/* 递归累计从 el 到 svg 根（不包括 el 自身、不包括 svg 根）的 translate 偏移 */
+function getAncestorOffset(el, svg) {
   let x = 0, y = 0;
-  let cur = el;
-  while (cur && cur !== root && cur.nodeType === 1) {
+  let cur = el && el.parentNode;
+  while (cur && cur !== svg && cur.nodeType === 1) {
     const { x: dx, y: dy } = getTranslate(cur);
     x += dx; y += dy;
     cur = cur.parentNode;
   }
   return { x, y };
+}
+
+/* 判断一个节点组的形状（兼容 Mermaid 不同版本嵌套结构） */
+function detectShapeType(g) {
+  // Mermaid 不同版本下 rect/polygon 可能位于 g.node 内的任意子层
+  const poly = g.querySelector("polygon");
+  if (poly) {
+    const pts = (poly.getAttribute("points") || "").trim().split(/\s+|,/)
+      .map(parseFloat).filter(n => !Number.isNaN(n));
+    if (pts.length === 8) {
+      // 判断是否菱形：4 个点，两对相对顶点大致在中线上
+      let xs = [], ys = [];
+      for (let i = 0; i < pts.length; i += 2) { xs.push(pts[i]); ys.push(pts[i+1]); }
+      const midX = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const midY = (Math.min(...ys) + Math.max(...ys)) / 2;
+      const onAxis = xs.filter(x => Math.abs(x - midX) < 1).length
+                   + ys.filter(y => Math.abs(y - midY) < 1).length;
+      if (onAxis >= 3) return "diamond";
+    }
+  }
+  if (g.querySelector("circle")) return "circle";
+  if (g.querySelector("ellipse")) return "ellipse";
+  return "rect";
 }
 
 /* 从 Mermaid SVG 中抽取节点（矩形/菱形/圆形）与连接线路径 */
@@ -562,78 +585,21 @@ function extractShapesFromSvg(svg) {
 
   const nodeGroups = svg.querySelectorAll("g.node");
   nodeGroups.forEach((g, idx) => {
-    const rectEl = g.querySelector(":scope > rect, :scope > polygon, :scope > circle, :scope > ellipse, :scope > path, rect, polygon, circle, ellipse, path.basic");
-    let x = 0, y = 0, w = 100, h = 40, shape = "rect";
+    let bb;
+    try { bb = g.getBBox(); } catch (_) { return; }
+    if (!bb || !bb.width || !bb.height) return;
 
-    if (rectEl) {
-      const t = rectEl.tagName.toLowerCase();
-      if (t === "rect") {
-        x = parseFloat(rectEl.getAttribute("x") || 0);
-        y = parseFloat(rectEl.getAttribute("y") || 0);
-        w = parseFloat(rectEl.getAttribute("width") || 100);
-        h = parseFloat(rectEl.getAttribute("height") || 40);
-        shape = "rect";
-      } else if (t === "polygon") {
-        const pts = (rectEl.getAttribute("points") || "")
-          .trim().split(/\s+|,/).map(parseFloat).filter(n => !Number.isNaN(n));
-        let xs = [], ys = [];
-        for (let i = 0; i < pts.length; i += 2) { xs.push(pts[i]); ys.push(pts[i+1]); }
-        if (xs.length) {
-          x = Math.min(...xs); y = Math.min(...ys);
-          w = Math.max(...xs) - x; h = Math.max(...ys) - y;
-        }
-        shape = xs.length === 4 ? "diamond" : "polygon";
-      } else if (t === "circle") {
-        const cx = parseFloat(rectEl.getAttribute("cx") || 0);
-        const cy = parseFloat(rectEl.getAttribute("cy") || 0);
-        const r = parseFloat(rectEl.getAttribute("r") || 20);
-        x = cx - r; y = cy - r; w = r * 2; h = r * 2;
-        shape = "circle";
-      } else if (t === "ellipse") {
-        const cx = parseFloat(rectEl.getAttribute("cx") || 0);
-        const cy = parseFloat(rectEl.getAttribute("cy") || 0);
-        const rx = parseFloat(rectEl.getAttribute("rx") || 30);
-        const ry = parseFloat(rectEl.getAttribute("ry") || 20);
-        x = cx - rx; y = cy - ry; w = rx * 2; h = ry * 2;
-        shape = "ellipse";
-      } else {
-        try {
-          const bb = rectEl.getBBox();
-          x = bb.x; y = bb.y; w = bb.width; h = bb.height;
-        } catch (_) {}
-      }
-    } else {
-      try {
-        const bb = g.getBBox();
-        x = bb.x; y = bb.y; w = bb.width; h = bb.height;
-      } catch (_) {}
-    }
+    // 节点组自身的 translate 把局部 (0,0) 放到父坐标系中的 (tx,ty)
+    // 再累加所有祖先的 translate，就得到 SVG 根坐标系中的绝对位置。
+    const ownT = getTranslate(g);
+    const ancT = getAncestorOffset(g, svg);
+    const absX = bb.x + ownT.x + ancT.x;
+    const absY = bb.y + ownT.y + ancT.y;
 
-    // 最可靠：直接用 getBoundingClientRect 配合 SVG CTM 获取节点的全局坐标
-    let absX = x, absY = y;
-    try {
-      const ctm = g.getCTM();
-      if (ctm) {
-        const pt = svg.createSVGPoint();
-        pt.x = x; pt.y = y;
-        const mapped = pt.matrixTransform(ctm);
-        absX = mapped.x; absY = mapped.y;
-        // 根据 CTM 缩放重新估算宽高
-        const sx = Math.hypot(ctm.a, ctm.b) || 1;
-        const sy = Math.hypot(ctm.c, ctm.d) || 1;
-        w = w * sx; h = h * sy;
-      } else {
-        const off = getAbsoluteOffset(g, svg);
-        absX = x + off.x; absY = y + off.y;
-      }
-    } catch (_) {
-      const off = getAbsoluteOffset(g, svg);
-      absX = x + off.x; absY = y + off.y;
-    }
+    const shape = detectShapeType(g);
 
-    // 文本：所有 text 元素
+    const texts = g.querySelectorAll("text, foreignObject");
     let label = "";
-    const texts = g.querySelectorAll("text");
     if (texts.length) {
       label = Array.from(texts).map(t => t.textContent || "").join("\n");
     } else {
@@ -641,11 +607,11 @@ function extractShapesFromSvg(svg) {
     }
     label = label.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim();
 
-    if (!isFinite(absX) || !isFinite(absY) || !w || !h) return;
+    if (!isFinite(absX) || !isFinite(absY)) return;
 
     nodes.push({
       id: g.id || ("node-" + idx),
-      x: absX, y: absY, w, h,
+      x: absX, y: absY, w: bb.width, h: bb.height,
       shape,
       label
     });
@@ -653,12 +619,35 @@ function extractShapesFromSvg(svg) {
 
   const edgePaths = svg.querySelectorAll(".edgePaths path, g.edgePath path, path.flowchart-link");
   edgePaths.forEach((p, idx) => {
-    const d = p.getAttribute("d") || "";
-    const pts = parsePathToPoints(d);
+    let pts = [];
+    // 优先用浏览器 API 对 path 做均匀采样，得到真实曲线轨迹
+    try {
+      const total = p.getTotalLength();
+      if (total > 0) {
+        const step = Math.max(6, total / 48); // 大约 48 段
+        for (let len = 0; len <= total; len += step) {
+          const pt = p.getPointAtLength(len);
+          pts.push([pt.x, pt.y]);
+        }
+        const last = p.getPointAtLength(total);
+        const lastPt = pts[pts.length - 1];
+        if (!lastPt || Math.hypot(lastPt[0] - last.x, lastPt[1] - last.y) > 0.1) {
+          pts.push([last.x, last.y]);
+        }
+        // 简化：共线的连续点合并
+        pts = simplifyPolyline(pts, 0.5);
+      }
+    } catch (_) {}
+    if (pts.length < 2) {
+      const d = p.getAttribute("d") || "";
+      pts = parsePathToPoints(d);
+    }
     if (pts.length < 2) return;
-    // 应用祖先 transform（通常 .edgePaths 无额外变换，但保险起见）
-    const off = getAbsoluteOffset(p, svg);
-    const absPts = pts.map(([x, y]) => [x + off.x, y + off.y]);
+    const ownT = getTranslate(p);
+    const ancT = getAncestorOffset(p, svg);
+    const dx = ownT.x + ancT.x;
+    const dy = ownT.y + ancT.y;
+    const absPts = pts.map(([x, y]) => [x + dx, y + dy]);
     edges.push({
       id: p.id || ("edge-" + idx),
       points: absPts,
@@ -666,6 +655,7 @@ function extractShapesFromSvg(svg) {
     });
   });
 
+  // 匹配 edgeLabels 到对应的 edgePath（按 DOM 顺序一一对应）
   const edgeLabels = svg.querySelectorAll(".edgeLabels .edgeLabel, g.edgeLabels g.edgeLabel");
   edgeLabels.forEach((el, i) => {
     const txt = (el.textContent || "").trim().replace(/\s+/g, " ");
@@ -673,6 +663,26 @@ function extractShapesFromSvg(svg) {
   });
 
   return { nodes, edges };
+}
+
+/* 简化多段折线：移除与前后点近似共线的中间点（Ramer–Douglas–Peucker 的简化版） */
+function simplifyPolyline(points, tolerance) {
+  if (points.length <= 2) return points.slice();
+  const result = [points[0]];
+  for (let i = 1; i < points.length - 1; i++) {
+    const a = result[result.length - 1];
+    const b = points[i];
+    const c = points[i + 1];
+    // 计算 b 到线段 ac 的垂直距离
+    const ax = a[0], ay = a[1];
+    const cx = c[0], cy = c[1];
+    const dx = cx - ax, dy = cy - ay;
+    const len = Math.hypot(dx, dy) || 1;
+    const dist = Math.abs((b[0] - ax) * dy - (b[1] - ay) * dx) / len;
+    if (dist > tolerance) result.push(b);
+  }
+  result.push(points[points.length - 1]);
+  return result;
 }
 
 /* 简化的 SVG path d 解析，取出途径点（支持 M/L/C/Q/H/V） */
@@ -809,27 +819,29 @@ function buildShapeXml(shape, idx) {
   </Shape>`;
 }
 
-/* 构建连接线（1D 形状，支持多点折线） */
+/* 构建连接线：作为 2D 折线 Shape，不使用 Begin/End，避免 Visio 自动重新路由 */
 function buildConnectorXml(edge, idx) {
-  const pts = edge.points; // inches，已转换
-  const p1 = pts[0];
-  const pN = pts[pts.length - 1];
-  const beginX = p1[0], beginY = p1[1];
-  const endX = pN[0], endY = pN[1];
-  const pinX = (beginX + endX) / 2;
-  const pinY = (beginY + endY) / 2;
-  const width = Math.max(Math.abs(endX - beginX), 0.01);
-  const height = Math.max(Math.abs(endY - beginY), 0.01);
+  const pts = edge.points; // inches
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  pts.forEach(([x, y]) => {
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+  });
+  const EPS = 0.01;
+  const width = Math.max(maxX - minX, EPS);
+  const height = Math.max(maxY - minY, EPS);
+  const pinX = minX + width / 2;
+  const pinY = minY + height / 2;
   const text = xmlEscape(edge.label || "");
 
-  // 将每个点映射到 local 坐标（相对 PinX - Width/2，PinY - Height/2）
-  const localX = (x) => (x - (pinX - width / 2));
-  const localY = (y) => (y - (pinY - height / 2));
+  // 相对 shape 左下角的 local 坐标（Visio Y 轴向上）
+  const lx = (x) => x - minX;
+  const ly = (y) => y - minY;
 
   let rows = "";
-  rows += `<Row T='MoveTo' IX='1'><Cell N='X' V='${f(localX(beginX))}'/><Cell N='Y' V='${f(localY(beginY))}'/></Row>`;
+  rows += `<Row T='MoveTo' IX='1'><Cell N='X' V='${f(lx(pts[0][0]))}'/><Cell N='Y' V='${f(ly(pts[0][1]))}'/></Row>`;
   for (let i = 1; i < pts.length; i++) {
-    rows += `<Row T='LineTo' IX='${i + 1}'><Cell N='X' V='${f(localX(pts[i][0]))}'/><Cell N='Y' V='${f(localY(pts[i][1]))}'/></Row>`;
+    rows += `<Row T='LineTo' IX='${i + 1}'><Cell N='X' V='${f(lx(pts[i][0]))}'/><Cell N='Y' V='${f(ly(pts[i][1]))}'/></Row>`;
   }
 
   return `<Shape ID='${idx}' NameU='Connector.${idx}' Type='Shape' LineStyle='0' FillStyle='0' TextStyle='0'>
@@ -842,12 +854,7 @@ function buildConnectorXml(edge, idx) {
     <Cell N='Angle' V='0'/>
     <Cell N='FlipX' V='0'/>
     <Cell N='FlipY' V='0'/>
-    <Cell N='BeginX' V='${f(beginX)}'/>
-    <Cell N='BeginY' V='${f(beginY)}'/>
-    <Cell N='EndX' V='${f(endX)}'/>
-    <Cell N='EndY' V='${f(endY)}'/>
-    <Cell N='ConLineRouteExt' V='2'/>
-    <Cell N='ShapeRouteStyle' V='16'/>
+    <Cell N='ResizeMode' V='0'/>
     <Cell N='EndArrow' V='4'/>
     <Cell N='EndArrowSize' V='2'/>
     <Cell N='BeginArrow' V='0'/>
@@ -855,6 +862,7 @@ function buildConnectorXml(edge, idx) {
     <Cell N='LineColor' V='#374151'/>
     <Cell N='LinePattern' V='1'/>
     <Cell N='FillPattern' V='0'/>
+    <Cell N='TextBkgnd' V='1'/>
     <Section N='Character'>
       <Row IX='0'>
         <Cell N='Color' V='#374151'/>

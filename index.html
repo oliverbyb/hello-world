@@ -323,7 +323,6 @@ F --> G{测试通过?}"></textarea>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js"></script>
 
 <script>
 /* ========== 工具函数 ========== */
@@ -376,7 +375,10 @@ mermaid.initialize({
   startOnLoad: false,
   theme: "default",
   securityLevel: "loose",
-  flowchart: { htmlLabels: true, curve: "basis" },
+  flowchart: { htmlLabels: false, useMaxWidth: false, curve: "basis" },
+  sequence: { useMaxWidth: false },
+  gantt: { useMaxWidth: false },
+  class: { useMaxWidth: false },
   fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif'
 });
 
@@ -439,32 +441,85 @@ btnClear.addEventListener("click", () => {
   btnPdf.disabled = true;
 });
 
-/* ========== PDF 导出 ========== */
+/* ========== PDF 导出：SVG -> Canvas -> PNG -> jsPDF ========== */
+function getSvgSize(svg) {
+  const vb = svg.viewBox && svg.viewBox.baseVal;
+  let w = (vb && vb.width) || 0;
+  let h = (vb && vb.height) || 0;
+  if (!w || !h) {
+    const bb = svg.getBBox ? svg.getBBox() : null;
+    if (bb) { w = bb.width; h = bb.height; }
+  }
+  if (!w || !h) {
+    const rect = svg.getBoundingClientRect();
+    w = w || rect.width || 800;
+    h = h || rect.height || 600;
+  }
+  return { w, h };
+}
+
+function svgToPngDataUrl(svg, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const { w, h } = getSvgSize(svg);
+    const clone = svg.cloneNode(true);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clone.setAttribute("width", w);
+    clone.setAttribute("height", h);
+    if (!clone.getAttribute("viewBox")) {
+      clone.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    }
+    const xml = new XMLSerializer().serializeToString(clone);
+    const svgBlob = new Blob(
+      ['<?xml version="1.0" encoding="UTF-8"?>\n' + xml],
+      { type: "image/svg+xml;charset=utf-8" }
+    );
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.ceil(w * scale));
+        canvas.height = Math.max(1, Math.ceil(h * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve({ dataUrl: canvas.toDataURL("image/png"), w, h });
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        reject(e);
+      }
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(new Error("SVG 渲染为图片失败，可能包含跨域资源。"));
+    };
+    img.src = url;
+  });
+}
+
 btnPdf.addEventListener("click", async () => {
   if (!lastSvgEl) return;
   try {
     btnPdf.disabled = true;
     const { jsPDF } = window.jspdf;
-    const bbox = lastSvgEl.getBBox ? lastSvgEl.getBBox() : null;
-    const vb = lastSvgEl.viewBox && lastSvgEl.viewBox.baseVal;
-    const w = (vb && vb.width) || (bbox && bbox.width) || lastSvgEl.clientWidth || 800;
-    const h = (vb && vb.height) || (bbox && bbox.height) || lastSvgEl.clientHeight || 600;
-    const orientation = w >= h ? "l" : "p";
+    const { dataUrl, w, h } = await svgToPngDataUrl(lastSvgEl, 2);
+    const margin = 20;
+    const pdfW = w + margin * 2;
+    const pdfH = h + margin * 2;
     const pdf = new jsPDF({
-      orientation,
+      orientation: pdfW >= pdfH ? "l" : "p",
       unit: "pt",
-      format: [w + 40, h + 40]
+      format: [pdfW, pdfH]
     });
-    // 克隆 SVG，避免修改预览中的节点
-    const clone = lastSvgEl.cloneNode(true);
-    clone.setAttribute("width", w);
-    clone.setAttribute("height", h);
-    await window.svg2pdf(clone, pdf, { x: 20, y: 20, width: w, height: h });
+    pdf.addImage(dataUrl, "PNG", margin, margin, w, h);
     pdf.save("mermaid-diagram.pdf");
     showToast("PDF 已生成", "success");
   } catch (err) {
     console.error(err);
-    showToast("PDF 导出失败：" + err.message, "error");
+    showToast("PDF 导出失败：" + (err && err.message ? err.message : err), "error");
   } finally {
     btnPdf.disabled = false;
   }
@@ -480,21 +535,38 @@ const PX_PER_INCH = 96;
 const PT_PER_INCH = 72;
 function pxToInches(px) { return px / PX_PER_INCH; }
 
+/* 解析一个元素 transform 中的 translate */
+function getTranslate(el) {
+  const t = el.getAttribute("transform") || "";
+  const m = /translate\(\s*([-\d.eE+]+)(?:\s*[, ]\s*([-\d.eE+]+))?\s*\)/.exec(t);
+  if (!m) return { x: 0, y: 0 };
+  return { x: parseFloat(m[1]) || 0, y: parseFloat(m[2]) || 0 };
+}
+
+/* 递归累计祖先的 translate（直到 svg 根） */
+function getAbsoluteOffset(el, root) {
+  let x = 0, y = 0;
+  let cur = el;
+  while (cur && cur !== root && cur.nodeType === 1) {
+    const { x: dx, y: dy } = getTranslate(cur);
+    x += dx; y += dy;
+    cur = cur.parentNode;
+  }
+  return { x, y };
+}
+
 /* 从 Mermaid SVG 中抽取节点（矩形/菱形/圆形）与连接线路径 */
 function extractShapesFromSvg(svg) {
   const nodes = [];
   const edges = [];
 
-  // 1) 节点：Mermaid flowchart 使用 .node 作为根 <g>
   const nodeGroups = svg.querySelectorAll("g.node");
   nodeGroups.forEach((g, idx) => {
-    const rectEl = g.querySelector("rect, polygon, circle, ellipse, path.basic");
-    const textEl = g.querySelector("foreignObject, .label, text");
+    const rectEl = g.querySelector(":scope > rect, :scope > polygon, :scope > circle, :scope > ellipse, :scope > path, rect, polygon, circle, ellipse, path.basic");
     let x = 0, y = 0, w = 100, h = 40, shape = "rect";
 
     if (rectEl) {
       const t = rectEl.tagName.toLowerCase();
-      const bb = g.getBBox ? g.getBBox() : null;
       if (t === "rect") {
         x = parseFloat(rectEl.getAttribute("x") || 0);
         y = parseFloat(rectEl.getAttribute("y") || 0);
@@ -524,23 +596,52 @@ function extractShapesFromSvg(svg) {
         const ry = parseFloat(rectEl.getAttribute("ry") || 20);
         x = cx - rx; y = cy - ry; w = rx * 2; h = ry * 2;
         shape = "ellipse";
-      } else if (bb) {
-        x = bb.x; y = bb.y; w = bb.width; h = bb.height;
+      } else {
+        try {
+          const bb = rectEl.getBBox();
+          x = bb.x; y = bb.y; w = bb.width; h = bb.height;
+        } catch (_) {}
       }
+    } else {
+      try {
+        const bb = g.getBBox();
+        x = bb.x; y = bb.y; w = bb.width; h = bb.height;
+      } catch (_) {}
     }
 
-    // 由于是 <g> 内部坐标，需要加上 group 的 transform translate(x,y)
-    const transform = g.getAttribute("transform") || "";
-    const m = /translate\(\s*([-\d.]+)[ ,]+([-\d.]+)\s*\)/.exec(transform);
-    const tx = m ? parseFloat(m[1]) : 0;
-    const ty = m ? parseFloat(m[2]) : 0;
+    // 最可靠：直接用 getBoundingClientRect 配合 SVG CTM 获取节点的全局坐标
+    let absX = x, absY = y;
+    try {
+      const ctm = g.getCTM();
+      if (ctm) {
+        const pt = svg.createSVGPoint();
+        pt.x = x; pt.y = y;
+        const mapped = pt.matrixTransform(ctm);
+        absX = mapped.x; absY = mapped.y;
+        // 根据 CTM 缩放重新估算宽高
+        const sx = Math.hypot(ctm.a, ctm.b) || 1;
+        const sy = Math.hypot(ctm.c, ctm.d) || 1;
+        w = w * sx; h = h * sy;
+      } else {
+        const off = getAbsoluteOffset(g, svg);
+        absX = x + off.x; absY = y + off.y;
+      }
+    } catch (_) {
+      const off = getAbsoluteOffset(g, svg);
+      absX = x + off.x; absY = y + off.y;
+    }
 
-    const absX = x + tx;
-    const absY = y + ty;
+    // 文本：所有 text 元素
+    let label = "";
+    const texts = g.querySelectorAll("text");
+    if (texts.length) {
+      label = Array.from(texts).map(t => t.textContent || "").join("\n");
+    } else {
+      label = g.textContent || "";
+    }
+    label = label.replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim();
 
-    // 获取文本
-    let label = (textEl && textEl.textContent ? textEl.textContent : (g.textContent || "")).trim();
-    label = label.replace(/\s+/g, " ");
+    if (!isFinite(absX) || !isFinite(absY) || !w || !h) return;
 
     nodes.push({
       id: g.id || ("node-" + idx),
@@ -550,20 +651,21 @@ function extractShapesFromSvg(svg) {
     });
   });
 
-  // 2) 边：edgePath 或 g.edgePaths > path
   const edgePaths = svg.querySelectorAll(".edgePaths path, g.edgePath path, path.flowchart-link");
   edgePaths.forEach((p, idx) => {
     const d = p.getAttribute("d") || "";
     const pts = parsePathToPoints(d);
     if (pts.length < 2) return;
+    // 应用祖先 transform（通常 .edgePaths 无额外变换，但保险起见）
+    const off = getAbsoluteOffset(p, svg);
+    const absPts = pts.map(([x, y]) => [x + off.x, y + off.y]);
     edges.push({
       id: p.id || ("edge-" + idx),
-      points: pts,
+      points: absPts,
       label: ""
     });
   });
 
-  // 3) 边标签
   const edgeLabels = svg.querySelectorAll(".edgeLabels .edgeLabel, g.edgeLabels g.edgeLabel");
   edgeLabels.forEach((el, i) => {
     const txt = (el.textContent || "").trim().replace(/\s+/g, " ");
@@ -621,101 +723,157 @@ function xmlEscape(s) {
     .replace(/'/g, "&apos;");
 }
 
-/* 构建一个 Visio Shape 的 XML */
+/* 数字格式化，避免科学计数法 */
+function f(n) {
+  if (!isFinite(n)) return "0";
+  return (+n).toFixed(6).replace(/\.?0+$/, "") || "0";
+}
+
+/* 构建一个 Visio 2D Shape 的 XML
+   - shape.shape: rect/diamond/circle/ellipse
+   - 坐标均已是 inches
+*/
 function buildShapeXml(shape, idx) {
-  const pinX = shape.pinX;
-  const pinY = shape.pinY;
-  const w = shape.width;
-  const h = shape.height;
-  const text = xmlEscape(shape.label || "");
-  let geom = "";
+  const pinX = shape.pinX, pinY = shape.pinY;
+  const w = shape.width, h = shape.height;
+  const textLines = String(shape.label || "").split(/\n/);
+  const text = textLines.map(xmlEscape).join("&#xA;");
+
+  let geomRows = "";
   switch (shape.shape) {
     case "diamond":
-      geom = `
-        <Section N='Geometry' IX='0'>
-          <Row T='MoveTo' IX='1'><Cell N='X' V='0.5' F='Width*0.5'/><Cell N='Y' V='0' F='Height*0'/></Row>
-          <Row T='LineTo' IX='2'><Cell N='X' V='1' F='Width*1'/><Cell N='Y' V='0.5' F='Height*0.5'/></Row>
-          <Row T='LineTo' IX='3'><Cell N='X' V='0.5' F='Width*0.5'/><Cell N='Y' V='1' F='Height*1'/></Row>
-          <Row T='LineTo' IX='4'><Cell N='X' V='0' F='Width*0'/><Cell N='Y' V='0.5' F='Height*0.5'/></Row>
-          <Row T='LineTo' IX='5'><Cell N='X' V='0.5' F='Width*0.5'/><Cell N='Y' V='0' F='Height*0'/></Row>
-        </Section>`;
+      geomRows = `
+      <Row T='RelMoveTo' IX='1'><Cell N='X' V='0.5'/><Cell N='Y' V='0'/></Row>
+      <Row T='RelLineTo' IX='2'><Cell N='X' V='1'/><Cell N='Y' V='0.5'/></Row>
+      <Row T='RelLineTo' IX='3'><Cell N='X' V='0.5'/><Cell N='Y' V='1'/></Row>
+      <Row T='RelLineTo' IX='4'><Cell N='X' V='0'/><Cell N='Y' V='0.5'/></Row>
+      <Row T='RelLineTo' IX='5'><Cell N='X' V='0.5'/><Cell N='Y' V='0'/></Row>`;
       break;
     case "circle":
     case "ellipse":
-      geom = `
-        <Section N='Geometry' IX='0'>
-          <Row T='Ellipse' IX='1'>
-            <Cell N='X' V='0.5' F='Width*0.5'/><Cell N='Y' V='0.5' F='Height*0.5'/>
-            <Cell N='A' V='1' F='Width*1'/><Cell N='B' V='0.5' F='Height*0.5'/>
-            <Cell N='C' V='0.5' F='Width*0.5'/><Cell N='D' V='1' F='Height*1'/>
-          </Row>
-        </Section>`;
+      geomRows = `
+      <Row T='Ellipse' IX='1'>
+        <Cell N='X' V='${f(w/2)}'/><Cell N='Y' V='${f(h/2)}'/>
+        <Cell N='A' V='${f(w)}'/><Cell N='B' V='${f(h/2)}'/>
+        <Cell N='C' V='${f(w/2)}'/><Cell N='D' V='${f(h)}'/>
+      </Row>`;
       break;
-      default:
-      geom = `
-        <Section N='Geometry' IX='0'>
-          <Row T='RelMoveTo' IX='1'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
-          <Row T='RelLineTo' IX='2'><Cell N='X' V='1'/><Cell N='Y' V='0'/></Row>
-          <Row T='RelLineTo' IX='3'><Cell N='X' V='1'/><Cell N='Y' V='1'/></Row>
-          <Row T='RelLineTo' IX='4'><Cell N='X' V='0'/><Cell N='Y' V='1'/></Row>
-          <Row T='RelLineTo' IX='5'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
-        </Section>`;
+    default:
+      geomRows = `
+      <Row T='RelMoveTo' IX='1'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
+      <Row T='RelLineTo' IX='2'><Cell N='X' V='1'/><Cell N='Y' V='0'/></Row>
+      <Row T='RelLineTo' IX='3'><Cell N='X' V='1'/><Cell N='Y' V='1'/></Row>
+      <Row T='RelLineTo' IX='4'><Cell N='X' V='0'/><Cell N='Y' V='1'/></Row>
+      <Row T='RelLineTo' IX='5'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>`;
   }
 
-  return `<Shape ID='${idx}' NameU='Shape.${idx}' Name='Shape.${idx}' Type='Shape' LineStyle='3' FillStyle='3' TextStyle='3'>
-    <Cell N='PinX' V='${pinX}'/>
-    <Cell N='PinY' V='${pinY}'/>
-    <Cell N='Width' V='${w}'/>
-    <Cell N='Height' V='${h}'/>
-    <Cell N='LocPinX' V='${w/2}' F='Width*0.5'/>
-    <Cell N='LocPinY' V='${h/2}' F='Height*0.5'/>
+  return `<Shape ID='${idx}' NameU='Sheet.${idx}' Type='Shape' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='PinX' V='${f(pinX)}'/>
+    <Cell N='PinY' V='${f(pinY)}'/>
+    <Cell N='Width' V='${f(w)}'/>
+    <Cell N='Height' V='${f(h)}'/>
+    <Cell N='LocPinX' V='${f(w/2)}' F='Width*0.5'/>
+    <Cell N='LocPinY' V='${f(h/2)}' F='Height*0.5'/>
     <Cell N='Angle' V='0'/>
     <Cell N='FlipX' V='0'/>
     <Cell N='FlipY' V='0'/>
+    <Cell N='ResizeMode' V='0'/>
     <Cell N='LineWeight' V='0.01041666666666667'/>
-    <Cell N='LineColor' V='#1f2937'/>
-    <Cell N='FillForegnd' V='#eff6ff'/>
-    <Cell N='Char.Size' V='0.1111111111111111' IX='0'/>
-    <Cell N='Char.Color' V='#111827' IX='0'/>
-    <Cell N='Para.HorzAlign' V='1' IX='0'/>
+    <Cell N='LineColor' V='#1F2937'/>
+    <Cell N='LinePattern' V='1'/>
+    <Cell N='FillForegnd' V='#EFF6FF'/>
+    <Cell N='FillPattern' V='1'/>
+    <Cell N='FillBkgnd' V='#FFFFFF'/>
+    <Cell N='TextBkgnd' V='0'/>
     <Cell N='VerticalAlign' V='1'/>
-    ${geom}
+    <Section N='Character'>
+      <Row IX='0'>
+        <Cell N='Color' V='#111827'/>
+        <Cell N='Size' V='0.11111111111111'/>
+        <Cell N='Font' V='0'/>
+      </Row>
+    </Section>
+    <Section N='Paragraph'>
+      <Row IX='0'>
+        <Cell N='HorzAlign' V='1'/>
+      </Row>
+    </Section>
+    <Section N='Geometry' IX='0'>
+      <Cell N='NoFill' V='0'/>
+      <Cell N='NoLine' V='0'/>
+      <Cell N='NoShow' V='0'/>
+      <Cell N='NoSnap' V='0'/>
+      <Cell N='NoQuickDrag' V='0'/>${geomRows}
+    </Section>
     <Text>${text}</Text>
   </Shape>`;
 }
 
-/* 构建连接线（1D 形状） */
+/* 构建连接线（1D 形状，支持多点折线） */
 function buildConnectorXml(edge, idx) {
-  const [p1, p2] = [edge.points[0], edge.points[edge.points.length - 1]];
-  const beginX = edge.beginX;
-  const beginY = edge.beginY;
-  const endX = edge.endX;
-  const endY = edge.endY;
+  const pts = edge.points; // inches，已转换
+  const p1 = pts[0];
+  const pN = pts[pts.length - 1];
+  const beginX = p1[0], beginY = p1[1];
+  const endX = pN[0], endY = pN[1];
+  const pinX = (beginX + endX) / 2;
+  const pinY = (beginY + endY) / 2;
+  const width = Math.max(Math.abs(endX - beginX), 0.01);
+  const height = Math.max(Math.abs(endY - beginY), 0.01);
   const text = xmlEscape(edge.label || "");
-  return `<Shape ID='${idx}' NameU='Dynamic connector.${idx}' Name='Dynamic connector.${idx}' Type='Shape' LineStyle='3' FillStyle='3' TextStyle='3'>
-    <Cell N='PinX' V='${(beginX+endX)/2}'/>
-    <Cell N='PinY' V='${(beginY+endY)/2}'/>
-    <Cell N='Width' V='${Math.max(Math.abs(endX-beginX), 0.1)}'/>
-    <Cell N='Height' V='${Math.max(Math.abs(endY-beginY), 0.1)}'/>
-    <Cell N='LocPinX' V='0' F='Width*0'/>
-    <Cell N='LocPinY' V='0' F='Height*0'/>
-    <Cell N='BeginX' V='${beginX}'/>
-    <Cell N='BeginY' V='${beginY}'/>
-    <Cell N='EndX' V='${endX}'/>
-    <Cell N='EndY' V='${endY}'/>
+
+  // 将每个点映射到 local 坐标（相对 PinX - Width/2，PinY - Height/2）
+  const localX = (x) => (x - (pinX - width / 2));
+  const localY = (y) => (y - (pinY - height / 2));
+
+  let rows = "";
+  rows += `<Row T='MoveTo' IX='1'><Cell N='X' V='${f(localX(beginX))}'/><Cell N='Y' V='${f(localY(beginY))}'/></Row>`;
+  for (let i = 1; i < pts.length; i++) {
+    rows += `<Row T='LineTo' IX='${i + 1}'><Cell N='X' V='${f(localX(pts[i][0]))}'/><Cell N='Y' V='${f(localY(pts[i][1]))}'/></Row>`;
+  }
+
+  return `<Shape ID='${idx}' NameU='Connector.${idx}' Type='Shape' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='PinX' V='${f(pinX)}'/>
+    <Cell N='PinY' V='${f(pinY)}'/>
+    <Cell N='Width' V='${f(width)}'/>
+    <Cell N='Height' V='${f(height)}'/>
+    <Cell N='LocPinX' V='${f(width/2)}' F='Width*0.5'/>
+    <Cell N='LocPinY' V='${f(height/2)}' F='Height*0.5'/>
+    <Cell N='Angle' V='0'/>
+    <Cell N='FlipX' V='0'/>
+    <Cell N='FlipY' V='0'/>
+    <Cell N='BeginX' V='${f(beginX)}'/>
+    <Cell N='BeginY' V='${f(beginY)}'/>
+    <Cell N='EndX' V='${f(endX)}'/>
+    <Cell N='EndY' V='${f(endY)}'/>
     <Cell N='ConLineRouteExt' V='2'/>
+    <Cell N='ShapeRouteStyle' V='16'/>
     <Cell N='EndArrow' V='4'/>
+    <Cell N='EndArrowSize' V='2'/>
+    <Cell N='BeginArrow' V='0'/>
     <Cell N='LineWeight' V='0.01041666666666667'/>
     <Cell N='LineColor' V='#374151'/>
-    <Cell N='Char.Size' V='0.09722222222222222' IX='0'/>
+    <Cell N='LinePattern' V='1'/>
+    <Cell N='FillPattern' V='0'/>
+    <Section N='Character'>
+      <Row IX='0'>
+        <Cell N='Color' V='#374151'/>
+        <Cell N='Size' V='0.09722222222222'/>
+        <Cell N='Font' V='0'/>
+      </Row>
+    </Section>
+    <Section N='Paragraph'>
+      <Row IX='0'>
+        <Cell N='HorzAlign' V='1'/>
+      </Row>
+    </Section>
     <Section N='Geometry' IX='0'>
       <Cell N='NoFill' V='1'/>
       <Cell N='NoLine' V='0'/>
       <Cell N='NoShow' V='0'/>
       <Cell N='NoSnap' V='0'/>
       <Cell N='NoQuickDrag' V='0'/>
-      <Row T='MoveTo' IX='1'><Cell N='X' V='0' F='Width*0'/><Cell N='Y' V='0' F='Height*0'/></Row>
-      <Row T='LineTo' IX='2'><Cell N='X' V='${Math.abs(endX-beginX)}' F='Width*1'/><Cell N='Y' V='${Math.abs(endY-beginY)}' F='Height*1'/></Row>
+      ${rows}
     </Section>
     <Text>${text}</Text>
   </Shape>`;
@@ -726,10 +884,9 @@ async function buildVsdx(svgEl) {
   const { nodes, edges } = extractShapesFromSvg(svgEl);
 
   if (nodes.length === 0) {
-    throw new Error("暂不支持该图表类型的节点解析，目前仅支持 flowchart 等带有形状节点的图表。");
+    throw new Error("未识别到可导出的节点。请确保使用 flowchart/graph 等带有形状节点的 Mermaid 图。");
   }
 
-  // 计算整体边界，转换为 inches，并作 Y 轴翻转（Visio Y 向上）
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   nodes.forEach(n => {
     minX = Math.min(minX, n.x);
@@ -741,7 +898,7 @@ async function buildVsdx(svgEl) {
     minX = Math.min(minX, x); minY = Math.min(minY, y);
     maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
   }));
-  const padding = 30;
+  const padding = 40;
   minX -= padding; minY -= padding; maxX += padding; maxY += padding;
 
   const scale = 1 / PX_PER_INCH; // px -> inch
@@ -766,88 +923,86 @@ async function buildVsdx(svgEl) {
   });
 
   edges.forEach((e, i) => {
-    const p1 = e.points[0], p2 = e.points[e.points.length - 1];
-    const edgeData = {
-      beginX: tx(p1[0]), beginY: ty(p1[1]),
-      endX: tx(p2[0]), endY: ty(p2[1]),
-      points: e.points.map(([x,y]) => [tx(x), ty(y)]),
+    shapes.push(buildConnectorXml({
+      points: e.points.map(([x, y]) => [tx(x), ty(y)]),
       label: e.label
-    };
-    shapes.push(buildConnectorXml(edgeData, nodes.length + i + 1));
+    }, nodes.length + i + 1));
   });
 
-  const pageXml = `<?xml version='1.0' encoding='utf-8'?>
-<PageContents xmlns='http://schemas.microsoft.com/office/visio/2012/main' xml:space='preserve'>
+  const pageXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<PageContents xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
   <Shapes>
-    ${shapes.join("\n")}
+    ${shapes.join("\n    ")}
   </Shapes>
 </PageContents>`;
 
-  const pagesXml = `<?xml version='1.0' encoding='utf-8'?>
+  const pagesXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <Pages xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
-  <Page ID='0' NameU='Page-1' Name='Page-1' ViewScale='-1' ViewCenterX='${pageWIn/2}' ViewCenterY='${pageHIn/2}'>
+  <Page ID='0' NameU='Page-1' Name='Page-1' ViewScale='-1' ViewCenterX='${f(pageWIn/2)}' ViewCenterY='${f(pageHIn/2)}'>
     <PageSheet LineStyle='0' FillStyle='0' TextStyle='0'>
-      <Cell N='PageWidth' V='${pageWIn.toFixed(4)}'/>
-      <Cell N='PageHeight' V='${pageHIn.toFixed(4)}'/>
+      <Cell N='PageWidth' V='${f(pageWIn)}'/>
+      <Cell N='PageHeight' V='${f(pageHIn)}'/>
       <Cell N='ShdwOffsetX' V='0.125'/>
       <Cell N='ShdwOffsetY' V='-0.125'/>
       <Cell N='PageScale' V='1' U='IN_F'/>
       <Cell N='DrawingScale' V='1' U='IN_F'/>
-      <Cell N='DrawingSizeType' V='0'/>
+      <Cell N='DrawingSizeType' V='3'/>
       <Cell N='DrawingScaleType' V='0'/>
       <Cell N='InhibitSnap' V='0'/>
+      <Cell N='PageLockReplace' V='0' U='BOOL'/>
+      <Cell N='PageLockDuplicate' V='0' U='BOOL'/>
       <Cell N='UIVisibility' V='0'/>
       <Cell N='ShdwType' V='0'/>
       <Cell N='ShdwObliqueAngle' V='0'/>
       <Cell N='ShdwScaleFactor' V='1'/>
       <Cell N='DrawingResizeType' V='1'/>
-      <Cell N='PageLockReplace' V='0' U='BOOL'/>
-      <Cell N='PageLockDuplicate' V='0' U='BOOL'/>
     </PageSheet>
     <Rel r:id='rId1'/>
   </Page>
 </Pages>`;
 
-  const documentXml = `<?xml version='1.0' encoding='utf-8'?>
+  const documentXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <VisioDocument xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
-  <DocumentSettings TopPage='0' DefaultTextStyle='3' DefaultLineStyle='3' DefaultFillStyle='3' DefaultGuideStyle='4'>
+  <DocumentSettings TopPage='0' DefaultTextStyle='0' DefaultLineStyle='0' DefaultFillStyle='0' DefaultGuideStyle='4'>
     <GlyphSettings/>
   </DocumentSettings>
   <Colors>
     <ColorEntry IX='0' RGB='#000000'/>
     <ColorEntry IX='1' RGB='#FFFFFF'/>
+    <ColorEntry IX='2' RGB='#FF0000'/>
+    <ColorEntry IX='3' RGB='#00FF00'/>
+    <ColorEntry IX='4' RGB='#0000FF'/>
+    <ColorEntry IX='5' RGB='#FFFF00'/>
+    <ColorEntry IX='6' RGB='#FF00FF'/>
+    <ColorEntry IX='7' RGB='#00FFFF'/>
   </Colors>
   <FaceNames>
-    <FaceName NameU='Calibri' ID='1' UnicodeRanges='0' CharSets='0' Panos='2 15 5 2 2 2 4 3 2 4' Flags='325'/>
+    <FaceName ID='1' NameU='Calibri' UnicodeRanges='-536870145 1073786111 9 0' CharSets='1073742335 -65536' Panos='2 15 5 2 2 2 4 3 2 4' Flags='261'/>
+    <FaceName ID='2' NameU='Microsoft YaHei' UnicodeRanges='-1610611969 -2139059393 27 0' CharSets='-2147482425 -2147483648' Panos='2 11 5 3 2 2 4 2 2 4' Flags='411'/>
   </FaceNames>
   <StyleSheets>
     <StyleSheet ID='0' NameU='No Style' Name='No Style'>
       <Cell N='EnableLineProps' V='1'/>
       <Cell N='EnableFillProps' V='1'/>
       <Cell N='EnableTextProps' V='1'/>
-    </StyleSheet>
-    <StyleSheet ID='1' NameU='Text Only' Name='Text Only' LineStyle='0' FillStyle='0' TextStyle='0'>
-      <Cell N='EnableLineProps' V='0'/>
-      <Cell N='EnableFillProps' V='0'/>
-      <Cell N='EnableTextProps' V='1'/>
-    </StyleSheet>
-    <StyleSheet ID='2' NameU='None' Name='None' LineStyle='0' FillStyle='0' TextStyle='0'>
-      <Cell N='EnableLineProps' V='1'/>
-      <Cell N='EnableFillProps' V='1'/>
-      <Cell N='EnableTextProps' V='1'/>
-      <Cell N='LinePattern' V='0'/>
-      <Cell N='FillPattern' V='0'/>
-      <Cell N='HideText' V='1'/>
-    </StyleSheet>
-    <StyleSheet ID='3' NameU='Normal' Name='Normal' LineStyle='2' FillStyle='2' TextStyle='2'>
-      <Cell N='EnableLineProps' V='1'/>
-      <Cell N='EnableFillProps' V='1'/>
-      <Cell N='EnableTextProps' V='1'/>
-    </StyleSheet>
-    <StyleSheet ID='4' NameU='Guide' Name='Guide' LineStyle='2' FillStyle='2' TextStyle='2'>
-      <Cell N='EnableLineProps' V='1'/>
-      <Cell N='EnableFillProps' V='1'/>
-      <Cell N='EnableTextProps' V='1'/>
+      <Cell N='LineWeight' V='0.01041666666666667'/>
+      <Cell N='LineColor' V='#000000'/>
+      <Cell N='LinePattern' V='1'/>
+      <Cell N='FillForegnd' V='#FFFFFF'/>
+      <Cell N='FillBkgnd' V='#FFFFFF'/>
+      <Cell N='FillPattern' V='1'/>
+      <Section N='Character'>
+        <Row IX='0'>
+          <Cell N='Font' V='0'/>
+          <Cell N='Color' V='#000000'/>
+          <Cell N='Size' V='0.1666666666666667'/>
+        </Row>
+      </Section>
+      <Section N='Paragraph'>
+        <Row IX='0'>
+          <Cell N='HorzAlign' V='1'/>
+        </Row>
+      </Section>
     </StyleSheet>
   </StyleSheets>
   <DocumentSheet NameU='TheDoc' LineStyle='0' FillStyle='0' TextStyle='0'>
@@ -855,7 +1010,7 @@ async function buildVsdx(svgEl) {
   </DocumentSheet>
 </VisioDocument>`;
 
-  const contentTypes = `<?xml version='1.0' encoding='utf-8'?>
+  const contentTypes = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <Types xmlns='http://schemas.openxmlformats.org/package/2006/content-types'>
   <Default Extension='rels' ContentType='application/vnd.openxmlformats-package.relationships+xml'/>
   <Default Extension='xml' ContentType='application/xml'/>
@@ -885,9 +1040,9 @@ async function buildVsdx(svgEl) {
   <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/page' Target='page1.xml'/>
 </Relationships>`;
 
-  const windowsXml = `<?xml version='1.0' encoding='utf-8'?>
+  const windowsXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <Windows xmlns='http://schemas.microsoft.com/office/visio/2012/main' ClientWidth='1440' ClientHeight='900'>
-  <Window ID='0' WindowType='Drawing' WindowState='1073741824' WindowLeft='0' WindowTop='0' WindowWidth='1440' WindowHeight='900' ContainerType='Page' Page='0' ViewScale='-1' ViewCenterX='${pageWIn/2}' ViewCenterY='${pageHIn/2}'>
+  <Window ID='0' WindowType='Drawing' WindowState='1073741824' WindowLeft='0' WindowTop='0' WindowWidth='1440' WindowHeight='900' ContainerType='Page' Page='0' ViewScale='-1' ViewCenterX='${f(pageWIn/2)}' ViewCenterY='${f(pageHIn/2)}'>
     <ShowRulers>1</ShowRulers>
     <ShowGrid>1</ShowGrid>
     <ShowPageBreaks>0</ShowPageBreaks>
@@ -902,41 +1057,55 @@ async function buildVsdx(svgEl) {
   </Window>
 </Windows>`;
 
-  const appXml = `<?xml version='1.0' encoding='utf-8'?>
+  const appXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <Properties xmlns='http://schemas.openxmlformats.org/officeDocument/2006/extended-properties' xmlns:vt='http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes'>
-  <Application>Mermaid-to-Visio Web Tool</Application>
-  <Template/>
-  <Company/>
-  <Manager/>
-  <HyperlinkBase/>
+  <Application>Mermaid to Visio</Application>
   <AppVersion>15.0000</AppVersion>
 </Properties>`;
 
   const now = new Date().toISOString();
-  const coreXml = `<?xml version='1.0' encoding='utf-8'?>
+  const coreXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <cp:coreProperties xmlns:cp='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' xmlns:dc='http://purl.org/dc/elements/1.1/' xmlns:dcterms='http://purl.org/dc/terms/' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
   <dc:title>Mermaid Diagram</dc:title>
-  <dc:creator>Mermaid-to-Visio</dc:creator>
-  <cp:lastModifiedBy>Mermaid-to-Visio</cp:lastModifiedBy>
+  <dc:creator>Mermaid to Visio</dc:creator>
+  <cp:lastModifiedBy>Mermaid to Visio</cp:lastModifiedBy>
   <dcterms:created xsi:type='dcterms:W3CDTF'>${now}</dcterms:created>
   <dcterms:modified xsi:type='dcterms:W3CDTF'>${now}</dcterms:modified>
 </cp:coreProperties>`;
 
-  const zip = new JSZip();
-  zip.file("[Content_Types].xml", contentTypes);
-  zip.folder("_rels").file(".rels", rootRels);
-  zip.folder("docProps").file("app.xml", appXml);
-  zip.folder("docProps").file("core.xml", coreXml);
-  const visio = zip.folder("visio");
-  visio.folder("_rels").file("document.xml.rels", docRels);
-  visio.file("document.xml", documentXml);
-  visio.file("windows.xml", windowsXml);
-  const pages = visio.folder("pages");
-  pages.folder("_rels").file("pages.xml.rels", pagesRels);
-  pages.file("pages.xml", pagesXml);
-  pages.file("page1.xml", pageXml);
+  // 生成前校验每个 XML 文件的语法
+  const parts = {
+    "[Content_Types].xml": contentTypes,
+    "_rels/.rels": rootRels,
+    "docProps/app.xml": appXml,
+    "docProps/core.xml": coreXml,
+    "visio/document.xml": documentXml,
+    "visio/windows.xml": windowsXml,
+    "visio/_rels/document.xml.rels": docRels,
+    "visio/pages/pages.xml": pagesXml,
+    "visio/pages/_rels/pages.xml.rels": pagesRels,
+    "visio/pages/page1.xml": pageXml
+  };
+  const parser = new DOMParser();
+  for (const [name, xml] of Object.entries(parts)) {
+    const doc = parser.parseFromString(xml, "application/xml");
+    const err = doc.querySelector("parsererror");
+    if (err) {
+      console.error("XML 校验失败", name, err.textContent);
+      throw new Error(`${name} 生成失败：${err.textContent.slice(0, 200)}`);
+    }
+  }
 
-  return await zip.generateAsync({ type: "blob", mimeType: "application/vnd.ms-visio.drawing" });
+  const zip = new JSZip();
+  for (const [name, xml] of Object.entries(parts)) {
+    zip.file(name, xml);
+  }
+
+  return await zip.generateAsync({
+    type: "blob",
+    mimeType: "application/vnd.ms-visio.drawing.main+xml",
+    compression: "DEFLATE"
+  });
 }
 
 btnVsdx.addEventListener("click", async () => {

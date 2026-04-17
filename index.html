@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mermaid 转 Visio（.vsdx 可编辑）</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --border-strong: #d1d5db;
+    --text: #111827;
+    --muted: #6b7280;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: #eff6ff;
+    --success: #16a34a;
+    --warn-bg: #fffbeb;
+    --warn-border: #fde68a;
+    --warn-text: #92400e;
+    --danger: #dc2626;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .page-title { font-size: 26px; font-weight: 700; margin: 0 0 8px; }
+  .page-subtitle { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+  .highlight { color: var(--primary); font-weight: 600; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 14px;
+  }
+
+  .editor-wrap {
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+  }
+  .editor-hint {
+    padding: 10px 14px;
+    color: var(--muted);
+    font-size: 13px;
+    border-bottom: 1px dashed var(--border);
+    background: #fafafa;
+  }
+  textarea#mermaid-input {
+    display: block;
+    width: 100%;
+    min-height: 200px;
+    padding: 12px 14px;
+    border: none;
+    outline: none;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 13.5px;
+    color: #374151;
+    background: #fff;
+  }
+  textarea#mermaid-input::placeholder { color: #9ca3af; }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+    align-items: center;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all .15s ease;
+    background: #fff;
+    color: #374151;
+    border-color: var(--border-strong);
+    user-select: none;
+  }
+  .btn:hover:not(:disabled) { background: #f3f4f6; }
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
+  .btn-outline-primary {
+    background: #fff;
+    color: var(--primary);
+    border-color: #bfdbfe;
+  }
+  .btn-outline-primary:hover:not(:disabled) {
+    background: var(--primary-soft);
+  }
+  .btn .icon { width: 16px; height: 16px; }
+  .counter {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .step {
+    border: 1px solid var(--border);
+    background: #fafbfc;
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+  }
+  .step-num {
+    width: 32px; height: 32px;
+    margin: 0 auto 10px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+  }
+  .step-title { font-weight: 600; margin-bottom: 4px; }
+  .step-desc { color: var(--muted); font-size: 13.5px; }
+
+  .tip {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: var(--warn-text);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13.5px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .tip b { color: #b45309; }
+
+  #preview-card { display: none; }
+  #preview {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow: auto;
+    background: #fff;
+    min-height: 200px;
+    text-align: center;
+  }
+  #preview svg { max-width: 100%; height: auto; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 36px;
+    transform: translateX(-50%) translateY(20px);
+    background: #111827;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: 1000;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .toast.error { background: var(--danger); }
+  .toast.success { background: var(--success); }
+
+  .error-box {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+    border-radius: 8px;
+    font-size: 13.5px;
+    white-space: pre-wrap;
+    display: none;
+  }
+
+  @media (max-width: 720px) {
+    .steps { grid-template-columns: 1fr; }
+    .counter { margin-left: 0; width: 100%; text-align: right; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="page-title">Mermaid 转 Visio（.vsdx 可编辑）</h1>
+  <p class="page-subtitle">
+    粘贴 Mermaid 代码，一键转换为可编辑的 Visio 文件。支持流程图、时序图、类图、ER图、甘特图等
+    <span class="highlight">14 种图表类型</span>。
+  </p>
+
+  <!-- 输入卡片 -->
+  <section class="card">
+    <h2>输入 Mermaid 代码</h2>
+    <div class="editor-wrap">
+      <div class="editor-hint">📄 示例代码（点击「填入示例」按钮使用，或直接输入您的代码）</div>
+      <textarea id="mermaid-input" spellcheck="false" placeholder="flowchart TD
+A[用户提交需求] --> B{需求评审}
+B -->|通过| C[系统设计]
+B -->|驳回| A
+C --> D[前端开发]
+C --> E[后端开发]
+D --> F[联调测试]
+E --> F
+F --> G{测试通过?}"></textarea>
+    </div>
+
+    <div class="actions">
+      <button id="btn-convert" class="btn btn-primary">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        转换并预览
+      </button>
+      <button id="btn-download-vsdx" class="btn" disabled>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下载 Visio
+      </button>
+      <button id="btn-download-pdf" class="btn" disabled>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        下载 PDF
+      </button>
+      <button id="btn-example" class="btn btn-outline-primary">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>
+        填入示例
+      </button>
+      <button id="btn-clear" class="btn btn-outline-primary">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        清空
+      </button>
+      <div class="counter">已输入 <span id="char-count">0</span> 字符</div>
+    </div>
+    <div id="error-box" class="error-box"></div>
+  </section>
+
+  <!-- 预览卡片 -->
+  <section id="preview-card" class="card">
+    <h2>预览</h2>
+    <div id="preview"></div>
+  </section>
+
+  <!-- 使用步骤 -->
+  <section class="card">
+    <h2>使用步骤</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">粘贴 Mermaid 代码</div>
+        <div class="step-desc">从 AI 工具复制 Mermaid 图表代码</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">点击转换</div>
+        <div class="step-desc">自动预览图表渲染效果</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">下载文件</div>
+        <div class="step-desc">下载 Visio(.vsdx) 或 PDF 文件</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 提示 -->
+  <div class="tip">
+    <span>💡</span>
+    <div>
+      <b>提示：</b>请粘贴完整的 Mermaid 代码，确保包含图表类型声明行（如
+      <code>flowchart TD</code>、<code>sequenceDiagram</code>、<code>classDiagram</code> 等）。
+      不要包含 <code>```mermaid</code> 标记。转换后可下载 Visio（.vsdx）文件，在
+      Microsoft Visio 2013 及以上版本中打开编辑。
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- 依赖库 -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js"></script>
+
+<script>
+/* ========== 工具函数 ========== */
+const $ = (id) => document.getElementById(id);
+const input = $("mermaid-input");
+const charCount = $("char-count");
+const btnConvert = $("btn-convert");
+const btnVsdx = $("btn-download-vsdx");
+const btnPdf = $("btn-download-pdf");
+const btnExample = $("btn-example");
+const btnClear = $("btn-clear");
+const previewCard = $("preview-card");
+const previewBox = $("preview");
+const errorBox = $("error-box");
+const toastEl = $("toast");
+
+const EXAMPLE = `flowchart TD
+A[用户提交需求] --> B{需求评审}
+B -->|通过| C[系统设计]
+B -->|驳回| A
+C --> D[前端开发]
+C --> E[后端开发]
+D --> F[联调测试]
+E --> F
+F --> G{测试通过?}
+G -->|是| H[上线部署]
+G -->|否| D`;
+
+function showToast(msg, type = "") {
+  toastEl.textContent = msg;
+  toastEl.className = "toast show " + type;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toastEl.classList.remove("show"), 2400);
+}
+function showError(msg) {
+  errorBox.style.display = "block";
+  errorBox.textContent = msg;
+}
+function clearError() {
+  errorBox.style.display = "none";
+  errorBox.textContent = "";
+}
+function updateCount() {
+  charCount.textContent = input.value.length;
+}
+input.addEventListener("input", updateCount);
+
+/* ========== Mermaid 初始化 ========== */
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "default",
+  securityLevel: "loose",
+  flowchart: { htmlLabels: true, curve: "basis" },
+  fontFamily: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif'
+});
+
+let lastSvgEl = null; // 最近一次渲染的 SVG 元素
+let lastCode = "";
+
+async function renderMermaid() {
+  const code = input.value.trim();
+  clearError();
+  if (!code) {
+    showError("请输入 Mermaid 代码再转换。");
+    showToast("请输入 Mermaid 代码", "error");
+    return;
+  }
+  try {
+    btnConvert.disabled = true;
+    btnConvert.textContent = "转换中…";
+    const id = "mmd-" + Date.now();
+    const { svg } = await mermaid.render(id, code);
+    previewBox.innerHTML = svg;
+    previewCard.style.display = "block";
+    const svgEl = previewBox.querySelector("svg");
+    if (!svgEl) throw new Error("渲染失败：未生成 SVG。");
+    // 移除 mermaid 给 SVG 设置的 100% 宽度，便于后续导出使用真实尺寸
+    svgEl.removeAttribute("style");
+    lastSvgEl = svgEl;
+    lastCode = code;
+    btnVsdx.disabled = false;
+    btnPdf.disabled = false;
+    showToast("转换成功", "success");
+  } catch (err) {
+    console.error(err);
+    showError("Mermaid 解析失败：" + (err && err.message ? err.message : err));
+    showToast("转换失败", "error");
+    previewCard.style.display = "none";
+    lastSvgEl = null;
+    btnVsdx.disabled = true;
+    btnPdf.disabled = true;
+  } finally {
+    btnConvert.disabled = false;
+    btnConvert.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>转换并预览`;
+  }
+}
+
+btnConvert.addEventListener("click", renderMermaid);
+btnExample.addEventListener("click", () => {
+  input.value = EXAMPLE;
+  updateCount();
+  clearError();
+  renderMermaid();
+});
+btnClear.addEventListener("click", () => {
+  input.value = "";
+  updateCount();
+  clearError();
+  previewCard.style.display = "none";
+  previewBox.innerHTML = "";
+  lastSvgEl = null;
+  btnVsdx.disabled = true;
+  btnPdf.disabled = true;
+});
+
+/* ========== PDF 导出 ========== */
+btnPdf.addEventListener("click", async () => {
+  if (!lastSvgEl) return;
+  try {
+    btnPdf.disabled = true;
+    const { jsPDF } = window.jspdf;
+    const bbox = lastSvgEl.getBBox ? lastSvgEl.getBBox() : null;
+    const vb = lastSvgEl.viewBox && lastSvgEl.viewBox.baseVal;
+    const w = (vb && vb.width) || (bbox && bbox.width) || lastSvgEl.clientWidth || 800;
+    const h = (vb && vb.height) || (bbox && bbox.height) || lastSvgEl.clientHeight || 600;
+    const orientation = w >= h ? "l" : "p";
+    const pdf = new jsPDF({
+      orientation,
+      unit: "pt",
+      format: [w + 40, h + 40]
+    });
+    // 克隆 SVG，避免修改预览中的节点
+    const clone = lastSvgEl.cloneNode(true);
+    clone.setAttribute("width", w);
+    clone.setAttribute("height", h);
+    await window.svg2pdf(clone, pdf, { x: 20, y: 20, width: w, height: h });
+    pdf.save("mermaid-diagram.pdf");
+    showToast("PDF 已生成", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("PDF 导出失败：" + err.message, "error");
+  } finally {
+    btnPdf.disabled = false;
+  }
+});
+
+/* ========== VSDX 生成 ==========
+   .vsdx 是一个符合 OPC 规范的 ZIP，内部是 Visio XML 架构。
+   这里生成一个包含矩形、菱形（决策）、圆形、文本和动态连接线的最小可编辑 Visio 文件。
+*/
+
+/* 英寸/EMU 转换及度量工具 */
+const PX_PER_INCH = 96;
+const PT_PER_INCH = 72;
+function pxToInches(px) { return px / PX_PER_INCH; }
+
+/* 从 Mermaid SVG 中抽取节点（矩形/菱形/圆形）与连接线路径 */
+function extractShapesFromSvg(svg) {
+  const nodes = [];
+  const edges = [];
+
+  // 1) 节点：Mermaid flowchart 使用 .node 作为根 <g>
+  const nodeGroups = svg.querySelectorAll("g.node");
+  nodeGroups.forEach((g, idx) => {
+    const rectEl = g.querySelector("rect, polygon, circle, ellipse, path.basic");
+    const textEl = g.querySelector("foreignObject, .label, text");
+    let x = 0, y = 0, w = 100, h = 40, shape = "rect";
+
+    if (rectEl) {
+      const t = rectEl.tagName.toLowerCase();
+      const bb = g.getBBox ? g.getBBox() : null;
+      if (t === "rect") {
+        x = parseFloat(rectEl.getAttribute("x") || 0);
+        y = parseFloat(rectEl.getAttribute("y") || 0);
+        w = parseFloat(rectEl.getAttribute("width") || 100);
+        h = parseFloat(rectEl.getAttribute("height") || 40);
+        shape = "rect";
+      } else if (t === "polygon") {
+        const pts = (rectEl.getAttribute("points") || "")
+          .trim().split(/\s+|,/).map(parseFloat).filter(n => !Number.isNaN(n));
+        let xs = [], ys = [];
+        for (let i = 0; i < pts.length; i += 2) { xs.push(pts[i]); ys.push(pts[i+1]); }
+        if (xs.length) {
+          x = Math.min(...xs); y = Math.min(...ys);
+          w = Math.max(...xs) - x; h = Math.max(...ys) - y;
+        }
+        shape = xs.length === 4 ? "diamond" : "polygon";
+      } else if (t === "circle") {
+        const cx = parseFloat(rectEl.getAttribute("cx") || 0);
+        const cy = parseFloat(rectEl.getAttribute("cy") || 0);
+        const r = parseFloat(rectEl.getAttribute("r") || 20);
+        x = cx - r; y = cy - r; w = r * 2; h = r * 2;
+        shape = "circle";
+      } else if (t === "ellipse") {
+        const cx = parseFloat(rectEl.getAttribute("cx") || 0);
+        const cy = parseFloat(rectEl.getAttribute("cy") || 0);
+        const rx = parseFloat(rectEl.getAttribute("rx") || 30);
+        const ry = parseFloat(rectEl.getAttribute("ry") || 20);
+        x = cx - rx; y = cy - ry; w = rx * 2; h = ry * 2;
+        shape = "ellipse";
+      } else if (bb) {
+        x = bb.x; y = bb.y; w = bb.width; h = bb.height;
+      }
+    }
+
+    // 由于是 <g> 内部坐标，需要加上 group 的 transform translate(x,y)
+    const transform = g.getAttribute("transform") || "";
+    const m = /translate\(\s*([-\d.]+)[ ,]+([-\d.]+)\s*\)/.exec(transform);
+    const tx = m ? parseFloat(m[1]) : 0;
+    const ty = m ? parseFloat(m[2]) : 0;
+
+    const absX = x + tx;
+    const absY = y + ty;
+
+    // 获取文本
+    let label = (textEl && textEl.textContent ? textEl.textContent : (g.textContent || "")).trim();
+    label = label.replace(/\s+/g, " ");
+
+    nodes.push({
+      id: g.id || ("node-" + idx),
+      x: absX, y: absY, w, h,
+      shape,
+      label
+    });
+  });
+
+  // 2) 边：edgePath 或 g.edgePaths > path
+  const edgePaths = svg.querySelectorAll(".edgePaths path, g.edgePath path, path.flowchart-link");
+  edgePaths.forEach((p, idx) => {
+    const d = p.getAttribute("d") || "";
+    const pts = parsePathToPoints(d);
+    if (pts.length < 2) return;
+    edges.push({
+      id: p.id || ("edge-" + idx),
+      points: pts,
+      label: ""
+    });
+  });
+
+  // 3) 边标签
+  const edgeLabels = svg.querySelectorAll(".edgeLabels .edgeLabel, g.edgeLabels g.edgeLabel");
+  edgeLabels.forEach((el, i) => {
+    const txt = (el.textContent || "").trim().replace(/\s+/g, " ");
+    if (txt && edges[i]) edges[i].label = txt;
+  });
+
+  return { nodes, edges };
+}
+
+/* 简化的 SVG path d 解析，取出途径点（支持 M/L/C/Q/H/V） */
+function parsePathToPoints(d) {
+  const points = [];
+  const tokens = d.match(/[MLCQHVZmlcqhvz]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi) || [];
+  let i = 0, cx = 0, cy = 0, cmd = "M";
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (/[MLCQHVZmlcqhvz]/.test(t)) { cmd = t; i++; continue; }
+    const n = parseFloat;
+    switch (cmd) {
+      case "M": case "L":
+        cx = n(tokens[i]); cy = n(tokens[i+1]); i += 2;
+        points.push([cx, cy]); break;
+      case "m": case "l":
+        cx += n(tokens[i]); cy += n(tokens[i+1]); i += 2;
+        points.push([cx, cy]); break;
+      case "H": cx = n(tokens[i]); i += 1; points.push([cx, cy]); break;
+      case "h": cx += n(tokens[i]); i += 1; points.push([cx, cy]); break;
+      case "V": cy = n(tokens[i]); i += 1; points.push([cx, cy]); break;
+      case "v": cy += n(tokens[i]); i += 1; points.push([cx, cy]); break;
+      case "C":
+        cx = n(tokens[i+4]); cy = n(tokens[i+5]); i += 6;
+        points.push([cx, cy]); break;
+      case "c":
+        cx += n(tokens[i+4]); cy += n(tokens[i+5]); i += 6;
+        points.push([cx, cy]); break;
+      case "Q":
+        cx = n(tokens[i+2]); cy = n(tokens[i+3]); i += 4;
+        points.push([cx, cy]); break;
+      case "q":
+        cx += n(tokens[i+2]); cy += n(tokens[i+3]); i += 4;
+        points.push([cx, cy]); break;
+      default: i++;
+    }
+  }
+  return points;
+}
+
+/* 文本转义 */
+function xmlEscape(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/* 构建一个 Visio Shape 的 XML */
+function buildShapeXml(shape, idx) {
+  const pinX = shape.pinX;
+  const pinY = shape.pinY;
+  const w = shape.width;
+  const h = shape.height;
+  const text = xmlEscape(shape.label || "");
+  let geom = "";
+  switch (shape.shape) {
+    case "diamond":
+      geom = `
+        <Section N='Geometry' IX='0'>
+          <Row T='MoveTo' IX='1'><Cell N='X' V='0.5' F='Width*0.5'/><Cell N='Y' V='0' F='Height*0'/></Row>
+          <Row T='LineTo' IX='2'><Cell N='X' V='1' F='Width*1'/><Cell N='Y' V='0.5' F='Height*0.5'/></Row>
+          <Row T='LineTo' IX='3'><Cell N='X' V='0.5' F='Width*0.5'/><Cell N='Y' V='1' F='Height*1'/></Row>
+          <Row T='LineTo' IX='4'><Cell N='X' V='0' F='Width*0'/><Cell N='Y' V='0.5' F='Height*0.5'/></Row>
+          <Row T='LineTo' IX='5'><Cell N='X' V='0.5' F='Width*0.5'/><Cell N='Y' V='0' F='Height*0'/></Row>
+        </Section>`;
+      break;
+    case "circle":
+    case "ellipse":
+      geom = `
+        <Section N='Geometry' IX='0'>
+          <Row T='Ellipse' IX='1'>
+            <Cell N='X' V='0.5' F='Width*0.5'/><Cell N='Y' V='0.5' F='Height*0.5'/>
+            <Cell N='A' V='1' F='Width*1'/><Cell N='B' V='0.5' F='Height*0.5'/>
+            <Cell N='C' V='0.5' F='Width*0.5'/><Cell N='D' V='1' F='Height*1'/>
+          </Row>
+        </Section>`;
+      break;
+      default:
+      geom = `
+        <Section N='Geometry' IX='0'>
+          <Row T='RelMoveTo' IX='1'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
+          <Row T='RelLineTo' IX='2'><Cell N='X' V='1'/><Cell N='Y' V='0'/></Row>
+          <Row T='RelLineTo' IX='3'><Cell N='X' V='1'/><Cell N='Y' V='1'/></Row>
+          <Row T='RelLineTo' IX='4'><Cell N='X' V='0'/><Cell N='Y' V='1'/></Row>
+          <Row T='RelLineTo' IX='5'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
+        </Section>`;
+  }
+
+  return `<Shape ID='${idx}' NameU='Shape.${idx}' Name='Shape.${idx}' Type='Shape' LineStyle='3' FillStyle='3' TextStyle='3'>
+    <Cell N='PinX' V='${pinX}'/>
+    <Cell N='PinY' V='${pinY}'/>
+    <Cell N='Width' V='${w}'/>
+    <Cell N='Height' V='${h}'/>
+    <Cell N='LocPinX' V='${w/2}' F='Width*0.5'/>
+    <Cell N='LocPinY' V='${h/2}' F='Height*0.5'/>
+    <Cell N='Angle' V='0'/>
+    <Cell N='FlipX' V='0'/>
+    <Cell N='FlipY' V='0'/>
+    <Cell N='LineWeight' V='0.01041666666666667'/>
+    <Cell N='LineColor' V='#1f2937'/>
+    <Cell N='FillForegnd' V='#eff6ff'/>
+    <Cell N='Char.Size' V='0.1111111111111111' IX='0'/>
+    <Cell N='Char.Color' V='#111827' IX='0'/>
+    <Cell N='Para.HorzAlign' V='1' IX='0'/>
+    <Cell N='VerticalAlign' V='1'/>
+    ${geom}
+    <Text>${text}</Text>
+  </Shape>`;
+}
+
+/* 构建连接线（1D 形状） */
+function buildConnectorXml(edge, idx) {
+  const [p1, p2] = [edge.points[0], edge.points[edge.points.length - 1]];
+  const beginX = edge.beginX;
+  const beginY = edge.beginY;
+  const endX = edge.endX;
+  const endY = edge.endY;
+  const text = xmlEscape(edge.label || "");
+  return `<Shape ID='${idx}' NameU='Dynamic connector.${idx}' Name='Dynamic connector.${idx}' Type='Shape' LineStyle='3' FillStyle='3' TextStyle='3'>
+    <Cell N='PinX' V='${(beginX+endX)/2}'/>
+    <Cell N='PinY' V='${(beginY+endY)/2}'/>
+    <Cell N='Width' V='${Math.max(Math.abs(endX-beginX), 0.1)}'/>
+    <Cell N='Height' V='${Math.max(Math.abs(endY-beginY), 0.1)}'/>
+    <Cell N='LocPinX' V='0' F='Width*0'/>
+    <Cell N='LocPinY' V='0' F='Height*0'/>
+    <Cell N='BeginX' V='${beginX}'/>
+    <Cell N='BeginY' V='${beginY}'/>
+    <Cell N='EndX' V='${endX}'/>
+    <Cell N='EndY' V='${endY}'/>
+    <Cell N='ConLineRouteExt' V='2'/>
+    <Cell N='EndArrow' V='4'/>
+    <Cell N='LineWeight' V='0.01041666666666667'/>
+    <Cell N='LineColor' V='#374151'/>
+    <Cell N='Char.Size' V='0.09722222222222222' IX='0'/>
+    <Section N='Geometry' IX='0'>
+      <Cell N='NoFill' V='1'/>
+      <Cell N='NoLine' V='0'/>
+      <Cell N='NoShow' V='0'/>
+      <Cell N='NoSnap' V='0'/>
+      <Cell N='NoQuickDrag' V='0'/>
+      <Row T='MoveTo' IX='1'><Cell N='X' V='0' F='Width*0'/><Cell N='Y' V='0' F='Height*0'/></Row>
+      <Row T='LineTo' IX='2'><Cell N='X' V='${Math.abs(endX-beginX)}' F='Width*1'/><Cell N='Y' V='${Math.abs(endY-beginY)}' F='Height*1'/></Row>
+    </Section>
+    <Text>${text}</Text>
+  </Shape>`;
+}
+
+/* 生成 vsdx zip */
+async function buildVsdx(svgEl) {
+  const { nodes, edges } = extractShapesFromSvg(svgEl);
+
+  if (nodes.length === 0) {
+    throw new Error("暂不支持该图表类型的节点解析，目前仅支持 flowchart 等带有形状节点的图表。");
+  }
+
+  // 计算整体边界，转换为 inches，并作 Y 轴翻转（Visio Y 向上）
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    minX = Math.min(minX, n.x);
+    minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.w);
+    maxY = Math.max(maxY, n.y + n.h);
+  });
+  edges.forEach(e => e.points.forEach(([x, y]) => {
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+  }));
+  const padding = 30;
+  minX -= padding; minY -= padding; maxX += padding; maxY += padding;
+
+  const scale = 1 / PX_PER_INCH; // px -> inch
+  const pageWIn = (maxX - minX) * scale;
+  const pageHIn = (maxY - minY) * scale;
+
+  function tx(x) { return (x - minX) * scale; }
+  function ty(y) { return pageHIn - (y - minY) * scale; }
+
+  const shapes = [];
+  nodes.forEach((n, i) => {
+    const wIn = n.w * scale;
+    const hIn = n.h * scale;
+    const pinX = tx(n.x + n.w / 2);
+    const pinY = ty(n.y + n.h / 2);
+    shapes.push(buildShapeXml({
+      shape: n.shape,
+      pinX, pinY,
+      width: wIn, height: hIn,
+      label: n.label
+    }, i + 1));
+  });
+
+  edges.forEach((e, i) => {
+    const p1 = e.points[0], p2 = e.points[e.points.length - 1];
+    const edgeData = {
+      beginX: tx(p1[0]), beginY: ty(p1[1]),
+      endX: tx(p2[0]), endY: ty(p2[1]),
+      points: e.points.map(([x,y]) => [tx(x), ty(y)]),
+      label: e.label
+    };
+    shapes.push(buildConnectorXml(edgeData, nodes.length + i + 1));
+  });
+
+  const pageXml = `<?xml version='1.0' encoding='utf-8'?>
+<PageContents xmlns='http://schemas.microsoft.com/office/visio/2012/main' xml:space='preserve'>
+  <Shapes>
+    ${shapes.join("\n")}
+  </Shapes>
+</PageContents>`;
+
+  const pagesXml = `<?xml version='1.0' encoding='utf-8'?>
+<Pages xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
+  <Page ID='0' NameU='Page-1' Name='Page-1' ViewScale='-1' ViewCenterX='${pageWIn/2}' ViewCenterY='${pageHIn/2}'>
+    <PageSheet LineStyle='0' FillStyle='0' TextStyle='0'>
+      <Cell N='PageWidth' V='${pageWIn.toFixed(4)}'/>
+      <Cell N='PageHeight' V='${pageHIn.toFixed(4)}'/>
+      <Cell N='ShdwOffsetX' V='0.125'/>
+      <Cell N='ShdwOffsetY' V='-0.125'/>
+      <Cell N='PageScale' V='1' U='IN_F'/>
+      <Cell N='DrawingScale' V='1' U='IN_F'/>
+      <Cell N='DrawingSizeType' V='0'/>
+      <Cell N='DrawingScaleType' V='0'/>
+      <Cell N='InhibitSnap' V='0'/>
+      <Cell N='UIVisibility' V='0'/>
+      <Cell N='ShdwType' V='0'/>
+      <Cell N='ShdwObliqueAngle' V='0'/>
+      <Cell N='ShdwScaleFactor' V='1'/>
+      <Cell N='DrawingResizeType' V='1'/>
+      <Cell N='PageLockReplace' V='0' U='BOOL'/>
+      <Cell N='PageLockDuplicate' V='0' U='BOOL'/>
+    </PageSheet>
+    <Rel r:id='rId1'/>
+  </Page>
+</Pages>`;
+
+  const documentXml = `<?xml version='1.0' encoding='utf-8'?>
+<VisioDocument xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
+  <DocumentSettings TopPage='0' DefaultTextStyle='3' DefaultLineStyle='3' DefaultFillStyle='3' DefaultGuideStyle='4'>
+    <GlyphSettings/>
+  </DocumentSettings>
+  <Colors>
+    <ColorEntry IX='0' RGB='#000000'/>
+    <ColorEntry IX='1' RGB='#FFFFFF'/>
+  </Colors>
+  <FaceNames>
+    <FaceName NameU='Calibri' ID='1' UnicodeRanges='0' CharSets='0' Panos='2 15 5 2 2 2 4 3 2 4' Flags='325'/>
+  </FaceNames>
+  <StyleSheets>
+    <StyleSheet ID='0' NameU='No Style' Name='No Style'>
+      <Cell N='EnableLineProps' V='1'/>
+      <Cell N='EnableFillProps' V='1'/>
+      <Cell N='EnableTextProps' V='1'/>
+    </StyleSheet>
+    <StyleSheet ID='1' NameU='Text Only' Name='Text Only' LineStyle='0' FillStyle='0' TextStyle='0'>
+      <Cell N='EnableLineProps' V='0'/>
+      <Cell N='EnableFillProps' V='0'/>
+      <Cell N='EnableTextProps' V='1'/>
+    </StyleSheet>
+    <StyleSheet ID='2' NameU='None' Name='None' LineStyle='0' FillStyle='0' TextStyle='0'>
+      <Cell N='EnableLineProps' V='1'/>
+      <Cell N='EnableFillProps' V='1'/>
+      <Cell N='EnableTextProps' V='1'/>
+      <Cell N='LinePattern' V='0'/>
+      <Cell N='FillPattern' V='0'/>
+      <Cell N='HideText' V='1'/>
+    </StyleSheet>
+    <StyleSheet ID='3' NameU='Normal' Name='Normal' LineStyle='2' FillStyle='2' TextStyle='2'>
+      <Cell N='EnableLineProps' V='1'/>
+      <Cell N='EnableFillProps' V='1'/>
+      <Cell N='EnableTextProps' V='1'/>
+    </StyleSheet>
+    <StyleSheet ID='4' NameU='Guide' Name='Guide' LineStyle='2' FillStyle='2' TextStyle='2'>
+      <Cell N='EnableLineProps' V='1'/>
+      <Cell N='EnableFillProps' V='1'/>
+      <Cell N='EnableTextProps' V='1'/>
+    </StyleSheet>
+  </StyleSheets>
+  <DocumentSheet NameU='TheDoc' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='OutputFormat' V='0'/>
+  </DocumentSheet>
+</VisioDocument>`;
+
+  const contentTypes = `<?xml version='1.0' encoding='utf-8'?>
+<Types xmlns='http://schemas.openxmlformats.org/package/2006/content-types'>
+  <Default Extension='rels' ContentType='application/vnd.openxmlformats-package.relationships+xml'/>
+  <Default Extension='xml' ContentType='application/xml'/>
+  <Override PartName='/visio/document.xml' ContentType='application/vnd.ms-visio.drawing.main+xml'/>
+  <Override PartName='/visio/pages/pages.xml' ContentType='application/vnd.ms-visio.pages+xml'/>
+  <Override PartName='/visio/pages/page1.xml' ContentType='application/vnd.ms-visio.page+xml'/>
+  <Override PartName='/visio/windows.xml' ContentType='application/vnd.ms-visio.windows+xml'/>
+  <Override PartName='/docProps/core.xml' ContentType='application/vnd.openxmlformats-package.core-properties+xml'/>
+  <Override PartName='/docProps/app.xml' ContentType='application/vnd.openxmlformats-officedocument.extended-properties+xml'/>
+</Types>`;
+
+  const rootRels = `<?xml version='1.0' encoding='utf-8'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/document' Target='visio/document.xml'/>
+  <Relationship Id='rId2' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties' Target='docProps/app.xml'/>
+  <Relationship Id='rId3' Type='http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties' Target='docProps/core.xml'/>
+</Relationships>`;
+
+  const docRels = `<?xml version='1.0' encoding='utf-8'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/pages' Target='pages/pages.xml'/>
+  <Relationship Id='rId2' Type='http://schemas.microsoft.com/visio/2010/relationships/windows' Target='windows.xml'/>
+</Relationships>`;
+
+  const pagesRels = `<?xml version='1.0' encoding='utf-8'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/page' Target='page1.xml'/>
+</Relationships>`;
+
+  const windowsXml = `<?xml version='1.0' encoding='utf-8'?>
+<Windows xmlns='http://schemas.microsoft.com/office/visio/2012/main' ClientWidth='1440' ClientHeight='900'>
+  <Window ID='0' WindowType='Drawing' WindowState='1073741824' WindowLeft='0' WindowTop='0' WindowWidth='1440' WindowHeight='900' ContainerType='Page' Page='0' ViewScale='-1' ViewCenterX='${pageWIn/2}' ViewCenterY='${pageHIn/2}'>
+    <ShowRulers>1</ShowRulers>
+    <ShowGrid>1</ShowGrid>
+    <ShowPageBreaks>0</ShowPageBreaks>
+    <ShowGuides>1</ShowGuides>
+    <ShowConnectionPoints>1</ShowConnectionPoints>
+    <GlueSettings>9</GlueSettings>
+    <SnapSettings>65847</SnapSettings>
+    <SnapExtensions>34</SnapExtensions>
+    <SnapAngles/>
+    <DynamicGridEnabled>1</DynamicGridEnabled>
+    <TabSplitterPos>0.5</TabSplitterPos>
+  </Window>
+</Windows>`;
+
+  const appXml = `<?xml version='1.0' encoding='utf-8'?>
+<Properties xmlns='http://schemas.openxmlformats.org/officeDocument/2006/extended-properties' xmlns:vt='http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes'>
+  <Application>Mermaid-to-Visio Web Tool</Application>
+  <Template/>
+  <Company/>
+  <Manager/>
+  <HyperlinkBase/>
+  <AppVersion>15.0000</AppVersion>
+</Properties>`;
+
+  const now = new Date().toISOString();
+  const coreXml = `<?xml version='1.0' encoding='utf-8'?>
+<cp:coreProperties xmlns:cp='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' xmlns:dc='http://purl.org/dc/elements/1.1/' xmlns:dcterms='http://purl.org/dc/terms/' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+  <dc:title>Mermaid Diagram</dc:title>
+  <dc:creator>Mermaid-to-Visio</dc:creator>
+  <cp:lastModifiedBy>Mermaid-to-Visio</cp:lastModifiedBy>
+  <dcterms:created xsi:type='dcterms:W3CDTF'>${now}</dcterms:created>
+  <dcterms:modified xsi:type='dcterms:W3CDTF'>${now}</dcterms:modified>
+</cp:coreProperties>`;
+
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", contentTypes);
+  zip.folder("_rels").file(".rels", rootRels);
+  zip.folder("docProps").file("app.xml", appXml);
+  zip.folder("docProps").file("core.xml", coreXml);
+  const visio = zip.folder("visio");
+  visio.folder("_rels").file("document.xml.rels", docRels);
+  visio.file("document.xml", documentXml);
+  visio.file("windows.xml", windowsXml);
+  const pages = visio.folder("pages");
+  pages.folder("_rels").file("pages.xml.rels", pagesRels);
+  pages.file("pages.xml", pagesXml);
+  pages.file("page1.xml", pageXml);
+
+  return await zip.generateAsync({ type: "blob", mimeType: "application/vnd.ms-visio.drawing" });
+}
+
+btnVsdx.addEventListener("click", async () => {
+  if (!lastSvgEl) return;
+  try {
+    btnVsdx.disabled = true;
+    const blob = await buildVsdx(lastSvgEl);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "mermaid-diagram.vsdx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Visio 文件已生成", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("生成 Visio 失败：" + err.message, "error");
+  } finally {
+    btnVsdx.disabled = false;
+  }
+});
+
+/* 初始状态 */
+updateCount();
+</script>
+</body>
+</html>

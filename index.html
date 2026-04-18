@@ -312,7 +312,10 @@ F --> G{测试通过?}"></textarea>
       <b>提示：</b>请粘贴完整的 Mermaid 代码，确保包含图表类型声明行（如
       <code>flowchart TD</code>、<code>sequenceDiagram</code>、<code>classDiagram</code> 等）。
       不要包含 <code>```mermaid</code> 标记。转换后可下载 Visio（.vsdx）文件，在
-      Microsoft Visio 2013 及以上版本中打开编辑。
+      Microsoft Visio 2013 及以上版本中打开编辑。<br />
+      其中 <b>flowchart / graph</b> 为逐形状矢量导出，节点和连线均可在 Visio 中单独编辑；
+      <b>sequenceDiagram、classDiagram、erDiagram、stateDiagram、gantt、pie</b> 等类型会作为整张图片嵌入 Visio
+      Shape（可整体缩放、移动，不可拆分编辑内部元素）。
     </div>
   </div>
 </div>
@@ -949,11 +952,232 @@ function buildEdgeLabelXml(lab, idx) {
 }
 
 /* 生成 vsdx zip */
+/* 把 blob 读为 dataURL */
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+
+/* base64 -> Uint8Array */
+function base64ToBytes(base64) {
+  const bin = atob(base64);
+  const len = bin.length;
+  const out = new Uint8Array(len);
+  for (let i = 0; i < len; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/* 把任意 Mermaid SVG 作为一张 PNG 嵌入一个 Visio Shape，返回 vsdx Blob。
+   用于 sequence/class/ER/gantt 等 Visio 没有原生对应图元的图表类型。 */
+async function buildVsdxAsPicture(svgEl) {
+  const { dataUrl, w, h } = await svgToPngDataUrl(svgEl, 2);
+  const base64 = dataUrl.split(",")[1];
+  const pngBytes = base64ToBytes(base64);
+
+  // 页面尺寸：inches（加留白）
+  const scale = 1 / PX_PER_INCH;
+  const padding = 0.3; // inch
+  const picW = w * scale;
+  const picH = h * scale;
+  const pageWIn = picW + padding * 2;
+  const pageHIn = picH + padding * 2;
+
+  const pinX = pageWIn / 2;
+  const pinY = pageHIn / 2;
+
+  const shapeXml = `<Shape ID='1' NameU='Picture.1' Type='Foreign' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='PinX' V='${f(pinX)}'/>
+    <Cell N='PinY' V='${f(pinY)}'/>
+    <Cell N='Width' V='${f(picW)}'/>
+    <Cell N='Height' V='${f(picH)}'/>
+    <Cell N='LocPinX' V='${f(picW/2)}' F='Width*0.5'/>
+    <Cell N='LocPinY' V='${f(picH/2)}' F='Height*0.5'/>
+    <Cell N='Angle' V='0'/>
+    <Cell N='FlipX' V='0'/>
+    <Cell N='FlipY' V='0'/>
+    <Cell N='ResizeMode' V='0'/>
+    <Cell N='LineWeight' V='0'/>
+    <Cell N='LinePattern' V='0'/>
+    <Cell N='FillPattern' V='0'/>
+    <ForeignData ForeignType='Bitmap' CompressionType='PNG' ShowDims='0'>
+      <Rel r:id='rId1'/>
+    </ForeignData>
+  </Shape>`;
+
+  const pageXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<PageContents xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
+  <Shapes>
+    ${shapeXml}
+  </Shapes>
+</PageContents>`;
+
+  const pagesXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Pages xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
+  <Page ID='0' NameU='Page-1' Name='Page-1' ViewScale='-1' ViewCenterX='${f(pageWIn/2)}' ViewCenterY='${f(pageHIn/2)}'>
+    <PageSheet LineStyle='0' FillStyle='0' TextStyle='0'>
+      <Cell N='PageWidth' V='${f(pageWIn)}'/>
+      <Cell N='PageHeight' V='${f(pageHIn)}'/>
+      <Cell N='ShdwOffsetX' V='0.125'/>
+      <Cell N='ShdwOffsetY' V='-0.125'/>
+      <Cell N='PageScale' V='1' U='IN_F'/>
+      <Cell N='DrawingScale' V='1' U='IN_F'/>
+      <Cell N='DrawingSizeType' V='3'/>
+      <Cell N='DrawingScaleType' V='0'/>
+      <Cell N='InhibitSnap' V='0'/>
+      <Cell N='DrawingResizeType' V='1'/>
+    </PageSheet>
+    <Rel r:id='rId1'/>
+  </Page>
+</Pages>`;
+
+  const documentXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<VisioDocument xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
+  <DocumentSettings TopPage='0' DefaultTextStyle='0' DefaultLineStyle='0' DefaultFillStyle='0' DefaultGuideStyle='4'>
+    <GlyphSettings/>
+  </DocumentSettings>
+  <Colors>
+    <ColorEntry IX='0' RGB='#000000'/>
+    <ColorEntry IX='1' RGB='#FFFFFF'/>
+  </Colors>
+  <FaceNames>
+    <FaceName ID='1' NameU='Calibri' Panos='2 15 5 2 2 2 4 3 2 4' Flags='261'/>
+  </FaceNames>
+  <StyleSheets>
+    <StyleSheet ID='0' NameU='No Style' Name='No Style'>
+      <Cell N='EnableLineProps' V='1'/>
+      <Cell N='EnableFillProps' V='1'/>
+      <Cell N='EnableTextProps' V='1'/>
+      <Cell N='LineWeight' V='0.01041666666666667'/>
+      <Cell N='LineColor' V='#000000'/>
+      <Cell N='FillForegnd' V='#FFFFFF'/>
+      <Cell N='FillBkgnd' V='#FFFFFF'/>
+      <Cell N='FillPattern' V='1'/>
+    </StyleSheet>
+  </StyleSheets>
+  <DocumentSheet NameU='TheDoc' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='OutputFormat' V='0'/>
+  </DocumentSheet>
+</VisioDocument>`;
+
+  const contentTypes = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Types xmlns='http://schemas.openxmlformats.org/package/2006/content-types'>
+  <Default Extension='rels' ContentType='application/vnd.openxmlformats-package.relationships+xml'/>
+  <Default Extension='xml' ContentType='application/xml'/>
+  <Default Extension='png' ContentType='image/png'/>
+  <Override PartName='/visio/document.xml' ContentType='application/vnd.ms-visio.drawing.main+xml'/>
+  <Override PartName='/visio/pages/pages.xml' ContentType='application/vnd.ms-visio.pages+xml'/>
+  <Override PartName='/visio/pages/page1.xml' ContentType='application/vnd.ms-visio.page+xml'/>
+  <Override PartName='/visio/windows.xml' ContentType='application/vnd.ms-visio.windows+xml'/>
+  <Override PartName='/docProps/core.xml' ContentType='application/vnd.openxmlformats-package.core-properties+xml'/>
+  <Override PartName='/docProps/app.xml' ContentType='application/vnd.openxmlformats-officedocument.extended-properties+xml'/>
+</Types>`;
+
+  const rootRels = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/document' Target='visio/document.xml'/>
+  <Relationship Id='rId2' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties' Target='docProps/app.xml'/>
+  <Relationship Id='rId3' Type='http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties' Target='docProps/core.xml'/>
+</Relationships>`;
+
+  const docRels = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/pages' Target='pages/pages.xml'/>
+  <Relationship Id='rId2' Type='http://schemas.microsoft.com/visio/2010/relationships/windows' Target='windows.xml'/>
+</Relationships>`;
+
+  const pagesRels = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/page' Target='page1.xml'/>
+</Relationships>`;
+
+  const page1Rels = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/image' Target='../media/image1.png'/>
+</Relationships>`;
+
+  const windowsXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Windows xmlns='http://schemas.microsoft.com/office/visio/2012/main' ClientWidth='1440' ClientHeight='900'>
+  <Window ID='0' WindowType='Drawing' WindowState='1073741824' WindowLeft='0' WindowTop='0' WindowWidth='1440' WindowHeight='900' ContainerType='Page' Page='0' ViewScale='-1' ViewCenterX='${f(pageWIn/2)}' ViewCenterY='${f(pageHIn/2)}'>
+    <ShowRulers>1</ShowRulers>
+    <ShowGrid>1</ShowGrid>
+    <ShowGuides>1</ShowGuides>
+    <ShowConnectionPoints>1</ShowConnectionPoints>
+    <DynamicGridEnabled>1</DynamicGridEnabled>
+    <TabSplitterPos>0.5</TabSplitterPos>
+  </Window>
+</Windows>`;
+
+  const appXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Properties xmlns='http://schemas.openxmlformats.org/officeDocument/2006/extended-properties'>
+  <Application>Mermaid to Visio</Application>
+  <AppVersion>15.0000</AppVersion>
+</Properties>`;
+
+  const now = new Date().toISOString();
+  const coreXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<cp:coreProperties xmlns:cp='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' xmlns:dc='http://purl.org/dc/elements/1.1/' xmlns:dcterms='http://purl.org/dc/terms/' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+  <dc:title>Mermaid Diagram</dc:title>
+  <dc:creator>Mermaid to Visio</dc:creator>
+  <dcterms:created xsi:type='dcterms:W3CDTF'>${now}</dcterms:created>
+  <dcterms:modified xsi:type='dcterms:W3CDTF'>${now}</dcterms:modified>
+</cp:coreProperties>`;
+
+  const xmlParts = {
+    "[Content_Types].xml": contentTypes,
+    "_rels/.rels": rootRels,
+    "docProps/app.xml": appXml,
+    "docProps/core.xml": coreXml,
+    "visio/document.xml": documentXml,
+    "visio/windows.xml": windowsXml,
+    "visio/_rels/document.xml.rels": docRels,
+    "visio/pages/pages.xml": pagesXml,
+    "visio/pages/_rels/pages.xml.rels": pagesRels,
+    "visio/pages/page1.xml": pageXml,
+    "visio/pages/_rels/page1.xml.rels": page1Rels
+  };
+  const parser = new DOMParser();
+  for (const [name, xml] of Object.entries(xmlParts)) {
+    const doc = parser.parseFromString(xml, "application/xml");
+    const err = doc.querySelector("parsererror");
+    if (err) throw new Error(`${name} 生成失败：${err.textContent.slice(0, 200)}`);
+  }
+
+  const zip = new JSZip();
+  for (const [name, xml] of Object.entries(xmlParts)) {
+    zip.file(name, xml);
+  }
+  zip.file("visio/media/image1.png", pngBytes);
+
+  return await zip.generateAsync({
+    type: "blob",
+    mimeType: "application/vnd.ms-visio.drawing.main+xml",
+    compression: "DEFLATE"
+  });
+}
+
+/* 判断是否走矢量导出（仅 flowchart/graph 支持逐形状矢量） */
+function isFlowchartLike(svg) {
+  // Mermaid 10+ 会在根 svg 或 id 上带上标识
+  const role = svg.getAttribute("aria-roledescription") || "";
+  if (/flowchart|graph/i.test(role)) return true;
+  // 兜底：如果能扫到 g.node 就当作 flowchart
+  return !!svg.querySelector("g.node");
+}
+
 async function buildVsdx(svgEl) {
+  if (!isFlowchartLike(svgEl)) {
+    return await buildVsdxAsPicture(svgEl);
+  }
+
   const { nodes, edges, labels } = extractShapesFromSvg(svgEl);
 
   if (nodes.length === 0) {
-    throw new Error("未识别到可导出的节点。请确保使用 flowchart/graph 等带有形状节点的 Mermaid 图。");
+    // 兜底：没识别到节点时也走图片路径，避免完全失败
+    return await buildVsdxAsPicture(svgEl);
   }
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -1195,6 +1419,7 @@ btnVsdx.addEventListener("click", async () => {
   if (!lastSvgEl) return;
   try {
     btnVsdx.disabled = true;
+    const isFlow = isFlowchartLike(lastSvgEl);
     const blob = await buildVsdx(lastSvgEl);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1204,7 +1429,10 @@ btnVsdx.addEventListener("click", async () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast("Visio 文件已生成", "success");
+    showToast(
+      isFlow ? "Visio 文件已生成（可编辑形状）" : "Visio 文件已生成（图片嵌入）",
+      "success"
+    );
   } catch (err) {
     console.error(err);
     showToast("生成 Visio 失败：" + err.message, "error");

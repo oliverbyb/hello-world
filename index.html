@@ -1350,10 +1350,29 @@ function normalizeColor(c) {
   return named[c.toLowerCase()] || null;
 }
 
+/* 读取元素自身 inline style 中的某个属性（忽略类/外部样式，避免 Mermaid 用 class 同时把文字和方框染成一个色） */
+function getInlineStyleProp(el, prop) {
+  const s = el.getAttribute("style") || "";
+  const m = new RegExp("(?:^|;)\\s*" + prop + "\\s*:\\s*([^;]+)", "i").exec(s);
+  return m ? m[1].trim() : "";
+}
+
 /* 获取元素的样式（合并 attribute 和 computed style） */
 function getSvgStyle(el) {
   const cs = window.getComputedStyle(el);
-  const fill = normalizeColor(el.getAttribute("fill") || cs.fill);
+  const tag = (el.tagName || "").toLowerCase();
+
+  // 对 <text> 元素，只信赖元素自身显式声明的 fill（attribute / inline style），
+  // 避免 Mermaid 的 class 级 CSS 把文字染成方框背景色
+  let fill;
+  if (tag === "text" || tag === "tspan") {
+    fill = normalizeColor(el.getAttribute("fill") || getInlineStyleProp(el, "fill"));
+    // 没有显式声明时，文字一律用黑色（安全且可读）
+    if (!fill) fill = "#000000";
+  } else {
+    fill = normalizeColor(el.getAttribute("fill") || cs.fill);
+  }
+
   const stroke = normalizeColor(el.getAttribute("stroke") || cs.stroke);
   let sw = el.getAttribute("stroke-width") || cs.strokeWidth || "1";
   sw = parseFloat(sw) || 1;

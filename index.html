@@ -313,9 +313,7 @@ F --> G{测试通过?}"></textarea>
       <code>flowchart TD</code>、<code>sequenceDiagram</code>、<code>classDiagram</code> 等）。
       不要包含 <code>```mermaid</code> 标记。转换后可下载 Visio（.vsdx）文件，在
       Microsoft Visio 2013 及以上版本中打开编辑。<br />
-      其中 <b>flowchart / graph</b> 为逐形状矢量导出，节点和连线均可在 Visio 中单独编辑；
-      <b>sequenceDiagram、classDiagram、erDiagram、stateDiagram、gantt、pie</b> 等类型会作为整张图片嵌入 Visio
-      Shape（可整体缩放、移动，不可拆分编辑内部元素）。
+      所有图表类型导出的 .vsdx 均为独立形状，每个节点、连线、文字都可单独选中、移动、修改样式。
     </div>
   </div>
 </div>
@@ -1175,25 +1173,640 @@ async function buildVsdxAsPicture(svgEl) {
   });
 }
 
-/* 判断是否走矢量导出（仅 flowchart/graph 支持逐形状矢量） */
+/* 共享：组装一个不含图片资源的 vsdx zip */
+async function assembleVsdxZip(shapesXml, pageWIn, pageHIn) {
+  const pageXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<PageContents xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
+  <Shapes>
+    ${shapesXml}
+  </Shapes>
+</PageContents>`;
+  const pagesXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Pages xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
+  <Page ID='0' NameU='Page-1' Name='Page-1' ViewScale='-1' ViewCenterX='${f(pageWIn/2)}' ViewCenterY='${f(pageHIn/2)}'>
+    <PageSheet LineStyle='0' FillStyle='0' TextStyle='0'>
+      <Cell N='PageWidth' V='${f(pageWIn)}'/>
+      <Cell N='PageHeight' V='${f(pageHIn)}'/>
+      <Cell N='ShdwOffsetX' V='0.125'/>
+      <Cell N='ShdwOffsetY' V='-0.125'/>
+      <Cell N='PageScale' V='1' U='IN_F'/>
+      <Cell N='DrawingScale' V='1' U='IN_F'/>
+      <Cell N='DrawingSizeType' V='3'/>
+      <Cell N='DrawingScaleType' V='0'/>
+      <Cell N='InhibitSnap' V='0'/>
+      <Cell N='DrawingResizeType' V='1'/>
+    </PageSheet>
+    <Rel r:id='rId1'/>
+  </Page>
+</Pages>`;
+  const documentXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<VisioDocument xmlns='http://schemas.microsoft.com/office/visio/2012/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships' xml:space='preserve'>
+  <DocumentSettings TopPage='0' DefaultTextStyle='0' DefaultLineStyle='0' DefaultFillStyle='0' DefaultGuideStyle='4'>
+    <GlyphSettings/>
+  </DocumentSettings>
+  <Colors>
+    <ColorEntry IX='0' RGB='#000000'/>
+    <ColorEntry IX='1' RGB='#FFFFFF'/>
+  </Colors>
+  <FaceNames>
+    <FaceName ID='1' NameU='Calibri' Panos='2 15 5 2 2 2 4 3 2 4' Flags='261'/>
+    <FaceName ID='2' NameU='Microsoft YaHei' Panos='2 11 5 3 2 2 4 2 2 4' Flags='411'/>
+  </FaceNames>
+  <StyleSheets>
+    <StyleSheet ID='0' NameU='No Style' Name='No Style'>
+      <Cell N='EnableLineProps' V='1'/>
+      <Cell N='EnableFillProps' V='1'/>
+      <Cell N='EnableTextProps' V='1'/>
+      <Cell N='LineWeight' V='0.01041666666666667'/>
+      <Cell N='LineColor' V='#000000'/>
+      <Cell N='LinePattern' V='1'/>
+      <Cell N='FillForegnd' V='#FFFFFF'/>
+      <Cell N='FillBkgnd' V='#FFFFFF'/>
+      <Cell N='FillPattern' V='1'/>
+      <Section N='Character'>
+        <Row IX='0'>
+          <Cell N='Font' V='0'/>
+          <Cell N='Color' V='#000000'/>
+          <Cell N='Size' V='0.1666666666666667'/>
+        </Row>
+      </Section>
+      <Section N='Paragraph'>
+        <Row IX='0'>
+          <Cell N='HorzAlign' V='1'/>
+        </Row>
+      </Section>
+    </StyleSheet>
+  </StyleSheets>
+  <DocumentSheet NameU='TheDoc' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='OutputFormat' V='0'/>
+  </DocumentSheet>
+</VisioDocument>`;
+  const contentTypes = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Types xmlns='http://schemas.openxmlformats.org/package/2006/content-types'>
+  <Default Extension='rels' ContentType='application/vnd.openxmlformats-package.relationships+xml'/>
+  <Default Extension='xml' ContentType='application/xml'/>
+  <Override PartName='/visio/document.xml' ContentType='application/vnd.ms-visio.drawing.main+xml'/>
+  <Override PartName='/visio/pages/pages.xml' ContentType='application/vnd.ms-visio.pages+xml'/>
+  <Override PartName='/visio/pages/page1.xml' ContentType='application/vnd.ms-visio.page+xml'/>
+  <Override PartName='/visio/windows.xml' ContentType='application/vnd.ms-visio.windows+xml'/>
+  <Override PartName='/docProps/core.xml' ContentType='application/vnd.openxmlformats-package.core-properties+xml'/>
+  <Override PartName='/docProps/app.xml' ContentType='application/vnd.openxmlformats-officedocument.extended-properties+xml'/>
+</Types>`;
+  const rootRels = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/document' Target='visio/document.xml'/>
+  <Relationship Id='rId2' Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties' Target='docProps/app.xml'/>
+  <Relationship Id='rId3' Type='http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties' Target='docProps/core.xml'/>
+</Relationships>`;
+  const docRels = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/pages' Target='pages/pages.xml'/>
+  <Relationship Id='rId2' Type='http://schemas.microsoft.com/visio/2010/relationships/windows' Target='windows.xml'/>
+</Relationships>`;
+  const pagesRels = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>
+  <Relationship Id='rId1' Type='http://schemas.microsoft.com/visio/2010/relationships/page' Target='page1.xml'/>
+</Relationships>`;
+  const windowsXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Windows xmlns='http://schemas.microsoft.com/office/visio/2012/main' ClientWidth='1440' ClientHeight='900'>
+  <Window ID='0' WindowType='Drawing' WindowState='1073741824' WindowLeft='0' WindowTop='0' WindowWidth='1440' WindowHeight='900' ContainerType='Page' Page='0' ViewScale='-1' ViewCenterX='${f(pageWIn/2)}' ViewCenterY='${f(pageHIn/2)}'>
+    <ShowRulers>1</ShowRulers>
+    <ShowGrid>1</ShowGrid>
+    <ShowGuides>1</ShowGuides>
+    <ShowConnectionPoints>1</ShowConnectionPoints>
+    <DynamicGridEnabled>1</DynamicGridEnabled>
+    <TabSplitterPos>0.5</TabSplitterPos>
+  </Window>
+</Windows>`;
+  const appXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Properties xmlns='http://schemas.openxmlformats.org/officeDocument/2006/extended-properties'>
+  <Application>Mermaid to Visio</Application>
+  <AppVersion>15.0000</AppVersion>
+</Properties>`;
+  const now = new Date().toISOString();
+  const coreXml = `<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<cp:coreProperties xmlns:cp='http://schemas.openxmlformats.org/package/2006/metadata/core-properties' xmlns:dc='http://purl.org/dc/elements/1.1/' xmlns:dcterms='http://purl.org/dc/terms/' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+  <dc:title>Mermaid Diagram</dc:title>
+  <dc:creator>Mermaid to Visio</dc:creator>
+  <dcterms:created xsi:type='dcterms:W3CDTF'>${now}</dcterms:created>
+  <dcterms:modified xsi:type='dcterms:W3CDTF'>${now}</dcterms:modified>
+</cp:coreProperties>`;
+
+  const xmlParts = {
+    "[Content_Types].xml": contentTypes,
+    "_rels/.rels": rootRels,
+    "docProps/app.xml": appXml,
+    "docProps/core.xml": coreXml,
+    "visio/document.xml": documentXml,
+    "visio/windows.xml": windowsXml,
+    "visio/_rels/document.xml.rels": docRels,
+    "visio/pages/pages.xml": pagesXml,
+    "visio/pages/_rels/pages.xml.rels": pagesRels,
+    "visio/pages/page1.xml": pageXml
+  };
+  const parser = new DOMParser();
+  for (const [name, xml] of Object.entries(xmlParts)) {
+    const doc = parser.parseFromString(xml, "application/xml");
+    const err = doc.querySelector("parsererror");
+    if (err) throw new Error(`${name} 生成失败：${err.textContent.slice(0, 200)}`);
+  }
+  const zip = new JSZip();
+  for (const [name, xml] of Object.entries(xmlParts)) zip.file(name, xml);
+  return await zip.generateAsync({
+    type: "blob",
+    mimeType: "application/vnd.ms-visio.drawing.main+xml",
+    compression: "DEFLATE"
+  });
+}
+
+/* ================================================================
+   通用 SVG → Visio Shape 转换
+   将每个原始 SVG 图元转为独立 Visio Shape，支持 sequence/class/state/ER 等
+   ================================================================ */
+
+/* 把常见 SVG 颜色字符串转成 #RRGGBB（大写），识别不出来就返回 null */
+function normalizeColor(c) {
+  if (!c) return null;
+  c = String(c).trim();
+  if (c === "none" || c === "transparent") return null;
+  if (c.startsWith("#")) {
+    if (c.length === 4) {
+      return "#" + c.slice(1).split("").map(x => x + x).join("").toUpperCase();
+    }
+    if (c.length === 7) return c.toUpperCase();
+  }
+  const m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/.exec(c);
+  if (m) {
+    const r = Math.round(parseFloat(m[1])).toString(16).padStart(2, "0");
+    const g = Math.round(parseFloat(m[2])).toString(16).padStart(2, "0");
+    const b = Math.round(parseFloat(m[3])).toString(16).padStart(2, "0");
+    return ("#" + r + g + b).toUpperCase();
+  }
+  // 命名颜色（有限支持）
+  const named = {
+    black: "#000000", white: "#FFFFFF", red: "#FF0000", green: "#008000",
+    blue: "#0000FF", gray: "#808080", grey: "#808080", silver: "#C0C0C0"
+  };
+  return named[c.toLowerCase()] || null;
+}
+
+/* 获取元素的样式（合并 attribute 和 computed style） */
+function getSvgStyle(el) {
+  const cs = window.getComputedStyle(el);
+  const fill = normalizeColor(el.getAttribute("fill") || cs.fill);
+  const stroke = normalizeColor(el.getAttribute("stroke") || cs.stroke);
+  let sw = el.getAttribute("stroke-width") || cs.strokeWidth || "1";
+  sw = parseFloat(sw) || 1;
+  let fontSize = el.getAttribute("font-size") || cs.fontSize || "14";
+  fontSize = parseFloat(fontSize) || 14;
+  const textAnchor = el.getAttribute("text-anchor") || cs.textAnchor || "start";
+  const fillColor = fill || "#000000";
+  const strokeColor = stroke;
+  const strokeDasharray = el.getAttribute("stroke-dasharray") || cs.strokeDasharray || "";
+  return {
+    fill, stroke, strokeWidth: sw,
+    fontSize, textAnchor,
+    fillColor, strokeColor, strokeDasharray
+  };
+}
+
+/* 判断是否是虚线样式 */
+function isDashed(dashArray) {
+  return !!(dashArray && dashArray !== "none" && /\d/.test(dashArray));
+}
+
+/* 通过 getCTM() 把一个点从元素局部坐标系转换到 svg 根坐标系 */
+function ctmTransformPoint(svg, ctm, x, y) {
+  const pt = svg.createSVGPoint();
+  pt.x = x; pt.y = y;
+  const m = pt.matrixTransform(ctm);
+  return [m.x, m.y];
+}
+
+/* 构建一个 Visio 矩形 Shape（可编辑，带可选填充/描边/文字） */
+function buildRectShapeXml(params, idx) {
+  const { x, y, w, h, fill, stroke, strokeWidth, text, textAlign, fontSize,
+          fontColor, dashed, rx } = params;
+  const pinX = x + w / 2;
+  const pinY = y + h / 2;
+  const noFill = fill ? 0 : 1;
+  const noLine = stroke ? 0 : 1;
+  const lineColor = stroke || "#000000";
+  const fillColor = fill || "#FFFFFF";
+  const fontC = fontColor || "#000000";
+  const lw = f(strokeWidth);
+  const linePattern = dashed ? 2 : 1;
+  const hAlign = textAlign === "middle" ? 1 : (textAlign === "end" ? 2 : 0);
+  const textEsc = text ? xmlEscape(text) : "";
+  const textSection = text ? `
+    <Section N='Character'>
+      <Row IX='0'>
+        <Cell N='Color' V='${fontC}'/>
+        <Cell N='Size' V='${f((fontSize || 12) / 72)}'/>
+        <Cell N='Font' V='0'/>
+      </Row>
+    </Section>
+    <Section N='Paragraph'>
+      <Row IX='0'>
+        <Cell N='HorzAlign' V='${hAlign}'/>
+      </Row>
+    </Section>` : "";
+  const textTag = text ? `<Text>${textEsc}</Text>` : "";
+
+  return `<Shape ID='${idx}' NameU='Rect.${idx}' Type='Shape' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='PinX' V='${f(pinX)}'/>
+    <Cell N='PinY' V='${f(pinY)}'/>
+    <Cell N='Width' V='${f(w)}'/>
+    <Cell N='Height' V='${f(h)}'/>
+    <Cell N='LocPinX' V='${f(w/2)}' F='Width*0.5'/>
+    <Cell N='LocPinY' V='${f(h/2)}' F='Height*0.5'/>
+    <Cell N='Angle' V='0'/>
+    <Cell N='FlipX' V='0'/>
+    <Cell N='FlipY' V='0'/>
+    <Cell N='ResizeMode' V='0'/>
+    <Cell N='LineWeight' V='${lw}'/>
+    <Cell N='LineColor' V='${lineColor}'/>
+    <Cell N='LinePattern' V='${linePattern}'/>
+    <Cell N='FillForegnd' V='${fillColor}'/>
+    <Cell N='FillBkgnd' V='${fillColor}'/>
+    <Cell N='FillPattern' V='1'/>
+    <Cell N='TextBkgnd' V='0'/>
+    <Cell N='VerticalAlign' V='1'/>
+    <Cell N='Rounding' V='${f(rx || 0)}'/>${textSection}
+    <Section N='Geometry' IX='0'>
+      <Cell N='NoFill' V='${noFill}'/>
+      <Cell N='NoLine' V='${noLine}'/>
+      <Cell N='NoShow' V='0'/>
+      <Cell N='NoSnap' V='0'/>
+      <Cell N='NoQuickDrag' V='0'/>
+      <Row T='RelMoveTo' IX='1'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
+      <Row T='RelLineTo' IX='2'><Cell N='X' V='1'/><Cell N='Y' V='0'/></Row>
+      <Row T='RelLineTo' IX='3'><Cell N='X' V='1'/><Cell N='Y' V='1'/></Row>
+      <Row T='RelLineTo' IX='4'><Cell N='X' V='0'/><Cell N='Y' V='1'/></Row>
+      <Row T='RelLineTo' IX='5'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
+    </Section>
+    ${textTag}
+  </Shape>`;
+}
+
+/* 构建一个 Visio 折线 Shape（直线、折线、path 都走这里） */
+function buildPolylineShapeXml(params, idx) {
+  const { points, stroke, strokeWidth, dashed, endArrow, beginArrow, fill } = params;
+  if (!points || points.length < 2) return "";
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  points.forEach(([x, y]) => {
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+  });
+  const EPS = 0.01;
+  const width = Math.max(maxX - minX, EPS);
+  const height = Math.max(maxY - minY, EPS);
+  const pinX = minX + width / 2;
+  const pinY = minY + height / 2;
+  const lx = (x) => x - minX;
+  const ly = (y) => y - minY;
+
+  let rows = `<Row T='MoveTo' IX='1'><Cell N='X' V='${f(lx(points[0][0]))}'/><Cell N='Y' V='${f(ly(points[0][1]))}'/></Row>`;
+  for (let i = 1; i < points.length; i++) {
+    rows += `<Row T='LineTo' IX='${i+1}'><Cell N='X' V='${f(lx(points[i][0]))}'/><Cell N='Y' V='${f(ly(points[i][1]))}'/></Row>`;
+  }
+
+  const lineColor = stroke || "#000000";
+  const lw = f(strokeWidth || 1);
+  const linePattern = dashed ? 2 : 1;
+  const noFill = fill ? 0 : 1;
+  const fillColor = fill || "#FFFFFF";
+
+  return `<Shape ID='${idx}' NameU='Line.${idx}' Type='Shape' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='PinX' V='${f(pinX)}'/>
+    <Cell N='PinY' V='${f(pinY)}'/>
+    <Cell N='Width' V='${f(width)}'/>
+    <Cell N='Height' V='${f(height)}'/>
+    <Cell N='LocPinX' V='${f(width/2)}' F='Width*0.5'/>
+    <Cell N='LocPinY' V='${f(height/2)}' F='Height*0.5'/>
+    <Cell N='Angle' V='0'/>
+    <Cell N='FlipX' V='0'/>
+    <Cell N='FlipY' V='0'/>
+    <Cell N='ResizeMode' V='0'/>
+    <Cell N='LineWeight' V='${lw}'/>
+    <Cell N='LineColor' V='${lineColor}'/>
+    <Cell N='LinePattern' V='${linePattern}'/>
+    <Cell N='FillForegnd' V='${fillColor}'/>
+    <Cell N='FillPattern' V='${noFill ? 0 : 1}'/>
+    <Cell N='EndArrow' V='${endArrow ? 4 : 0}'/>
+    <Cell N='EndArrowSize' V='2'/>
+    <Cell N='BeginArrow' V='${beginArrow ? 4 : 0}'/>
+    <Cell N='TextBkgnd' V='0'/>
+    <Section N='Geometry' IX='0'>
+      <Cell N='NoFill' V='${noFill}'/>
+      <Cell N='NoLine' V='0'/>
+      <Cell N='NoShow' V='0'/>
+      <Cell N='NoSnap' V='0'/>
+      <Cell N='NoQuickDrag' V='0'/>
+      ${rows}
+    </Section>
+  </Shape>`;
+}
+
+/* 构建一个 Visio 文本 Shape */
+function buildTextShapeXml(params, idx) {
+  const { x, y, w, h, text, fontSize, fontColor, align } = params;
+  const pinX = x + w / 2;
+  const pinY = y + h / 2;
+  const hAlign = align === "middle" ? 1 : (align === "end" ? 2 : 0);
+  const color = fontColor || "#000000";
+  return `<Shape ID='${idx}' NameU='Text.${idx}' Type='Shape' LineStyle='0' FillStyle='0' TextStyle='0'>
+    <Cell N='PinX' V='${f(pinX)}'/>
+    <Cell N='PinY' V='${f(pinY)}'/>
+    <Cell N='Width' V='${f(w)}'/>
+    <Cell N='Height' V='${f(h)}'/>
+    <Cell N='LocPinX' V='${f(w/2)}' F='Width*0.5'/>
+    <Cell N='LocPinY' V='${f(h/2)}' F='Height*0.5'/>
+    <Cell N='Angle' V='0'/>
+    <Cell N='FlipX' V='0'/>
+    <Cell N='FlipY' V='0'/>
+    <Cell N='ResizeMode' V='0'/>
+    <Cell N='LineWeight' V='0'/>
+    <Cell N='LinePattern' V='0'/>
+    <Cell N='FillPattern' V='0'/>
+    <Cell N='TextBkgnd' V='0'/>
+    <Cell N='VerticalAlign' V='1'/>
+    <Section N='Character'>
+      <Row IX='0'>
+        <Cell N='Color' V='${color}'/>
+        <Cell N='Size' V='${f((fontSize || 12) / 72)}'/>
+        <Cell N='Font' V='0'/>
+      </Row>
+    </Section>
+    <Section N='Paragraph'>
+      <Row IX='0'>
+        <Cell N='HorzAlign' V='${hAlign}'/>
+      </Row>
+    </Section>
+    <Section N='Geometry' IX='0'>
+      <Cell N='NoFill' V='1'/>
+      <Cell N='NoLine' V='1'/>
+      <Cell N='NoShow' V='0'/>
+      <Cell N='NoSnap' V='0'/>
+      <Cell N='NoQuickDrag' V='0'/>
+      <Row T='RelMoveTo' IX='1'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
+      <Row T='RelLineTo' IX='2'><Cell N='X' V='1'/><Cell N='Y' V='0'/></Row>
+      <Row T='RelLineTo' IX='3'><Cell N='X' V='1'/><Cell N='Y' V='1'/></Row>
+      <Row T='RelLineTo' IX='4'><Cell N='X' V='0'/><Cell N='Y' V='1'/></Row>
+      <Row T='RelLineTo' IX='5'><Cell N='X' V='0'/><Cell N='Y' V='0'/></Row>
+    </Section>
+    <Text>${xmlEscape(text || "")}</Text>
+  </Shape>`;
+}
+
+/* 从 SVG 中抽取所有绘制图元，转换为可编辑 Visio Shape。
+   适用于 sequenceDiagram、classDiagram、stateDiagram、erDiagram 等 */
+function extractGenericShapes(svg) {
+  const shapes = []; // 每项: {type:'rect'|'line'|'text', ...} 坐标均已转为 svg 根坐标
+
+  // 收集所有渲染图元（排除 defs 等）
+  const elems = svg.querySelectorAll("rect, line, path, polygon, polyline, circle, ellipse, text");
+  elems.forEach(el => {
+    // 跳过 defs / marker / clipPath 下的元素
+    let p = el.parentNode;
+    let skip = false;
+    while (p && p !== svg) {
+      const tn = p.tagName && p.tagName.toLowerCase();
+      if (tn === "defs" || tn === "marker" || tn === "clippath" || tn === "mask" || tn === "pattern" || tn === "symbol") {
+        skip = true; break;
+      }
+      p = p.parentNode;
+    }
+    if (skip) return;
+
+    let ctm;
+    try { ctm = el.getCTM(); } catch (_) { ctm = null; }
+    if (!ctm) return;
+
+    const tag = el.tagName.toLowerCase();
+    const st = getSvgStyle(el);
+
+    if (tag === "rect") {
+      const x = parseFloat(el.getAttribute("x") || 0);
+      const y = parseFloat(el.getAttribute("y") || 0);
+      const w = parseFloat(el.getAttribute("width") || 0);
+      const h = parseFloat(el.getAttribute("height") || 0);
+      const rx = parseFloat(el.getAttribute("rx") || 0);
+      if (!w || !h) return;
+      const [ax, ay] = ctmTransformPoint(svg, ctm, x, y);
+      const [bx, by] = ctmTransformPoint(svg, ctm, x + w, y + h);
+      shapes.push({
+        type: "rect",
+        x: Math.min(ax, bx), y: Math.min(ay, by),
+        w: Math.abs(bx - ax), h: Math.abs(by - ay),
+        fill: st.fill, stroke: st.stroke, strokeWidth: st.strokeWidth,
+        dashed: isDashed(st.strokeDasharray),
+        rx
+      });
+    } else if (tag === "line") {
+      const x1 = parseFloat(el.getAttribute("x1") || 0);
+      const y1 = parseFloat(el.getAttribute("y1") || 0);
+      const x2 = parseFloat(el.getAttribute("x2") || 0);
+      const y2 = parseFloat(el.getAttribute("y2") || 0);
+      const [ax, ay] = ctmTransformPoint(svg, ctm, x1, y1);
+      const [bx, by] = ctmTransformPoint(svg, ctm, x2, y2);
+      shapes.push({
+        type: "line",
+        points: [[ax, ay], [bx, by]],
+        stroke: st.stroke || "#000000",
+        strokeWidth: st.strokeWidth,
+        dashed: isDashed(st.strokeDasharray)
+      });
+    } else if (tag === "polyline" || tag === "polygon") {
+      const raw = (el.getAttribute("points") || "").trim()
+        .split(/[\s,]+/).map(parseFloat).filter(n => !Number.isNaN(n));
+      const pts = [];
+      for (let i = 0; i < raw.length; i += 2) {
+        pts.push(ctmTransformPoint(svg, ctm, raw[i], raw[i+1]));
+      }
+      if (pts.length < 2) return;
+      if (tag === "polygon") pts.push(pts[0]); // 闭合
+      shapes.push({
+        type: "line",
+        points: pts,
+        stroke: st.stroke || "#000000",
+        strokeWidth: st.strokeWidth,
+        dashed: isDashed(st.strokeDasharray),
+        fill: tag === "polygon" ? st.fill : null
+      });
+    } else if (tag === "path") {
+      // 用 getPointAtLength 采样 path
+      let pts = [];
+      try {
+        const total = el.getTotalLength();
+        if (total > 0) {
+          const step = Math.max(3, total / 64);
+          for (let l = 0; l <= total; l += step) {
+            const pt = el.getPointAtLength(l);
+            pts.push(ctmTransformPoint(svg, ctm, pt.x, pt.y));
+          }
+          const last = el.getPointAtLength(total);
+          pts.push(ctmTransformPoint(svg, ctm, last.x, last.y));
+          pts = simplifyPolyline(pts, 0.5);
+        }
+      } catch (_) {}
+      if (pts.length < 2) return;
+
+      // 检查该 path 是否有箭头 marker（Mermaid 时序图中带 marker-end 的是消息箭头）
+      const markerEnd = el.getAttribute("marker-end") || "";
+      const markerStart = el.getAttribute("marker-start") || "";
+      shapes.push({
+        type: "line",
+        points: pts,
+        stroke: st.stroke || "#000000",
+        strokeWidth: st.strokeWidth,
+        dashed: isDashed(st.strokeDasharray),
+        endArrow: !!markerEnd,
+        beginArrow: !!markerStart,
+        fill: st.fill && st.fill !== "#FFFFFF" ? st.fill : null
+      });
+    } else if (tag === "circle" || tag === "ellipse") {
+      const cx = parseFloat(el.getAttribute("cx") || 0);
+      const cy = parseFloat(el.getAttribute("cy") || 0);
+      let rx, ry;
+      if (tag === "circle") {
+        rx = ry = parseFloat(el.getAttribute("r") || 0);
+      } else {
+        rx = parseFloat(el.getAttribute("rx") || 0);
+        ry = parseFloat(el.getAttribute("ry") || 0);
+      }
+      if (!rx || !ry) return;
+      // 用 32 点近似椭圆，作为闭合折线
+      const pts = [];
+      for (let i = 0; i <= 32; i++) {
+        const a = (i / 32) * 2 * Math.PI;
+        pts.push(ctmTransformPoint(svg, ctm, cx + Math.cos(a) * rx, cy + Math.sin(a) * ry));
+      }
+      shapes.push({
+        type: "line",
+        points: pts,
+        stroke: st.stroke || "#000000",
+        strokeWidth: st.strokeWidth,
+        dashed: isDashed(st.strokeDasharray),
+        fill: st.fill
+      });
+    } else if (tag === "text") {
+      const txt = (el.textContent || "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+      if (!txt) return;
+      let bb;
+      try { bb = el.getBBox(); } catch (_) { return; }
+      if (!bb.width || !bb.height) return;
+      const [ax, ay] = ctmTransformPoint(svg, ctm, bb.x, bb.y);
+      const [bx, by] = ctmTransformPoint(svg, ctm, bb.x + bb.width, bb.y + bb.height);
+      const padX = 2, padY = 1;
+      shapes.push({
+        type: "text",
+        x: Math.min(ax, bx) - padX,
+        y: Math.min(ay, by) - padY,
+        w: Math.abs(bx - ax) + padX * 2,
+        h: Math.abs(by - ay) + padY * 2,
+        text: txt,
+        fontSize: st.fontSize,
+        fontColor: st.fillColor,
+        align: st.textAnchor
+      });
+    }
+  });
+
+  return shapes;
+}
+
+/* 组装通用 SVG → vsdx（每个图元独立可编辑的 shape） */
+async function buildVsdxFromGenericSvg(svgEl) {
+  const items = extractGenericShapes(svgEl);
+  if (items.length === 0) {
+    throw new Error("无法从该图表中解析出可转换的图元。请尝试导出为 PDF。");
+  }
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  items.forEach(s => {
+    if (s.type === "rect" || s.type === "text") {
+      minX = Math.min(minX, s.x);
+      minY = Math.min(minY, s.y);
+      maxX = Math.max(maxX, s.x + s.w);
+      maxY = Math.max(maxY, s.y + s.h);
+    } else if (s.type === "line") {
+      s.points.forEach(([x, y]) => {
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+      });
+    }
+  });
+  const padding = 20;
+  minX -= padding; minY -= padding; maxX += padding; maxY += padding;
+
+  const scale = 1 / PX_PER_INCH;
+  const pageWIn = (maxX - minX) * scale;
+  const pageHIn = (maxY - minY) * scale;
+  const tx = (x) => (x - minX) * scale;
+  const ty = (y) => pageHIn - (y - minY) * scale;
+
+  const shapes = [];
+  let id = 0;
+  // 排序：先绘制 rect（背景），再 line，再 text（文字在最上层）
+  const order = { rect: 0, line: 1, text: 2 };
+  items.sort((a, b) => (order[a.type] || 0) - (order[b.type] || 0));
+
+  items.forEach(s => {
+    id++;
+    if (s.type === "rect") {
+      shapes.push(buildRectShapeXml({
+        x: tx(s.x), y: ty(s.y + s.h),
+        w: s.w * scale, h: s.h * scale,
+        fill: s.fill, stroke: s.stroke,
+        strokeWidth: (s.strokeWidth || 1) / PX_PER_INCH,
+        dashed: s.dashed,
+        rx: (s.rx || 0) * scale
+      }, id));
+    } else if (s.type === "line") {
+      const pts = s.points.map(([x, y]) => [tx(x), ty(y)]);
+      shapes.push(buildPolylineShapeXml({
+        points: pts,
+        stroke: s.stroke,
+        strokeWidth: (s.strokeWidth || 1) / PX_PER_INCH,
+        dashed: s.dashed,
+        endArrow: s.endArrow,
+        beginArrow: s.beginArrow,
+        fill: s.fill
+      }, id));
+    } else if (s.type === "text") {
+      shapes.push(buildTextShapeXml({
+        x: tx(s.x), y: ty(s.y + s.h),
+        w: s.w * scale, h: s.h * scale,
+        text: s.text,
+        fontSize: s.fontSize,
+        fontColor: s.fontColor,
+        align: s.align
+      }, id));
+    }
+  });
+
+  return await assembleVsdxZip(shapes.join("\n    "), pageWIn, pageHIn);
+}
+
+
 function isFlowchartLike(svg) {
-  // Mermaid 10+ 会在根 svg 或 id 上带上标识
   const role = svg.getAttribute("aria-roledescription") || "";
   if (/flowchart|graph/i.test(role)) return true;
-  // 兜底：如果能扫到 g.node 就当作 flowchart
   return !!svg.querySelector("g.node");
 }
 
 async function buildVsdx(svgEl) {
   if (!isFlowchartLike(svgEl)) {
-    return await buildVsdxAsPicture(svgEl);
+    // 其他类型（时序图/类图/状态图/ER 图等）走通用 SVG → Shape 转换，
+    // 每个图元都是独立的可编辑 Visio Shape
+    return await buildVsdxFromGenericSvg(svgEl);
   }
 
   const { nodes, edges, labels } = extractShapesFromSvg(svgEl);
 
   if (nodes.length === 0) {
-    // 兜底：没识别到节点时也走图片路径，避免完全失败
-    return await buildVsdxAsPicture(svgEl);
+    return await buildVsdxFromGenericSvg(svgEl);
   }
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -1435,7 +2048,6 @@ btnVsdx.addEventListener("click", async () => {
   if (!lastSvgEl) return;
   try {
     btnVsdx.disabled = true;
-    const isFlow = isFlowchartLike(lastSvgEl);
     const blob = await buildVsdx(lastSvgEl);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1445,10 +2057,7 @@ btnVsdx.addEventListener("click", async () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast(
-      isFlow ? "Visio 文件已生成（可编辑形状）" : "Visio 文件已生成（图片嵌入）",
-      "success"
-    );
+    showToast("Visio 文件已生成（可编辑形状）", "success");
   } catch (err) {
     console.error(err);
     showToast("生成 Visio 失败：" + err.message, "error");
